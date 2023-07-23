@@ -8,9 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 bevy = "0.10.1"
-minerdata = { git = "https://github.com/brianduff/miner_rip_asm"}
+minerdata = { git = "https://github.com/brianduff/miner_rip_bin"}
 png = "0.17.9"
 
 
-[patch."https://github.com/brianduff/miner_rip_asm"]
+[patch."https://github.com/brianduff/miner_rip_bin"]
 minerdata = { path = "../miner_rip_bin" }
