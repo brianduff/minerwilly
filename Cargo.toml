@@ -6,4 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1"
 bevy = "0.10.1"
+minerdata = { git = "https://github.com/brianduff/miner_rip_asm"}
+png = "0.17.9"
+
+
+[patch."https://github.com/brianduff/miner_rip_asm"]
+minerdata = { path = "../miner_rip_bin" }
