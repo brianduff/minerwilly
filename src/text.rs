@@ -36,7 +36,7 @@ impl Charset {
     let text_bytes = text.as_bytes();
 
     for r in 0..=7 {
-      for c in 0..text.len() {
+      (0..text.len()).for_each(|c| {
         let charcode = if text_bytes[c] < 32 || text_bytes[c] > 127 {
           32
         } else {
@@ -56,20 +56,18 @@ impl Charset {
           });
           mask >>= 1;
         }
-      }
+      });
     }
 
     buffer
   }
 }
 
+#[cfg(test)]
 mod tests {
-  use std::fs::File;
   use std::io::BufWriter;
 
-  use super::SpectrumColor;
-  use super::Charset;
-  use anyhow::Result;
+  use super::*;
 
   #[test]
   fn to_rgba_works() -> Result<()> {
