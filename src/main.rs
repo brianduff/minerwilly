@@ -48,7 +48,7 @@ fn main() -> Result<()>  {
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
         .add_systems(Startup, setup)
         .add_systems(PostStartup, setup2)
-        .add_systems(Update, (animate_sprite, check_keyboard))
+        .add_systems(Update, (animate_sprite, check_keyboard, create_level, check_debug_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
 
@@ -88,16 +88,24 @@ struct SpriteSheets {
     background_tiles: Handle<Image>
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 struct Levels {
     current_cavern: usize
 }
 
-#[derive(Resource)]
-struct GameDataResource {
-    game_data: GameData
+#[derive (Component, Debug)]
+struct CavernTile {
+    x: u8,
+    y: u8,
 }
 
+#[derive(Resource, Deref)]
+struct GameDataResource(GameData);
+
+#[derive(Resource)]
+struct Textures {
+    tile_textures: Handle<TextureAtlas>
+}
 
 fn setup(
     mut commands: Commands,
@@ -116,8 +124,10 @@ fn setup(
     let bg_tile_handle = images.add(image);
     let sprite_sheets = SpriteSheets { willy_sprites: texture_handle, background_tiles: bg_tile_handle.clone() };
 
-    let tile_textures = TextureAtlas::from_grid(bg_tile_handle, Vec2::new(8.0, 8.0), 16, 10, None, None);
-    let tile_textures_handle = texture_atlases.add(tile_textures);
+    let tile_textures = texture_atlases.add(TextureAtlas::from_grid(bg_tile_handle, Vec2::new(8.0, 8.0), 16, 10, None, None));
+
+    commands.insert_resource(Textures { tile_textures });
+
     let texture_handle = asset_server.load("textures/willysprites.png");
 
     let current_cavern = 0;
@@ -132,7 +142,7 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
     commands.insert_resource(sprite_sheets);
     commands.insert_resource(levels);
-//    commands.insert_resource(GameDataResource{ game_data });
+    commands.insert_resource(GameDataResource(game_data));
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
@@ -146,42 +156,42 @@ fn setup(
     ));
 
 
-    let border_color = ink_to_color(&game_data.caverns.get(current_cavern).unwrap().border_color);
-    clear_color.set_r(border_color.r());
-    clear_color.set_g(border_color.g());
-    clear_color.set_b(border_color.b());
-    clear_color.set_a(border_color.a());
+    // let border_color = ink_to_color(&game_data.caverns.get(current_cavern).unwrap().border_color);
+    // clear_color.set_r(border_color.r());
+    // clear_color.set_g(border_color.g());
+    // clear_color.set_b(border_color.b());
+    // clear_color.set_a(border_color.a());
 
-    for y in 0..16 {
-        for x in 0..32 {
-            let cavern = &game_data.caverns[current_cavern];
-            let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
-            if let Some(sprite_index) = sprite_index {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: tile_textures_handle.clone(),
-                        sprite: TextureAtlasSprite {
-                            index: (current_cavern * 8) + sprite_index,
-                            anchor: Anchor::TopLeft,
-                            ..default() },
-                        transform: at_char_pos((x, y)),
-                        ..default()
-                    },
-                ));
-            }
-            // pos_x += 8.0 * SCALE;
-        }
-        // pos_x = start_x;
-        // pos_y -= 8.0 * SCALE;
-    }
+    // for y in 0..16 {
+    //     for x in 0..32 {
+    //         let cavern = &game_data.caverns[current_cavern];
+    //         let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
+    //         if let Some(sprite_index) = sprite_index {
+    //             commands.spawn((
+    //                 SpriteSheetBundle {
+    //                     texture_atlas: tile_textures_handle.clone(),
+    //                     sprite: TextureAtlasSprite {
+    //                         index: (current_cavern * 8) + sprite_index,
+    //                         anchor: Anchor::TopLeft,
+    //                         ..default() },
+    //                     transform: at_char_pos((x, y)),
+    //                     ..default()
+    //                 },
+    //             ));
+    //         }
+    //         // pos_x += 8.0 * SCALE;
+    //     }
+    //     // pos_x = start_x;
+    //     // pos_y -= 8.0 * SCALE;
+    // }
 
     let charset = Charset::load("assets/charset.bin").unwrap();
 
-    let cavern_name_handle = images.add(create_text(
-        &charset,
-        &game_data.caverns[current_cavern].name,
-        SpectrumColorName::Black, SpectrumColorName::Yellow, false));
-    commands.spawn(tile_sprite(cavern_name_handle, (0, 16)));
+    // let cavern_name_handle = images.add(create_text(
+    //     &charset,
+    //     &game_data.caverns[current_cavern].name,
+    //     SpectrumColorName::Black, SpectrumColorName::Yellow, false));
+    // commands.spawn(tile_sprite(cavern_name_handle, (0, 16)));
 
     let air_bar_red_handle = images.add(create_text(
         &charset,
@@ -203,6 +213,7 @@ fn setup(
         SpectrumColorName::Yellow, SpectrumColorName::Black, false));
     commands.spawn(tile_sprite(high_score_image_handle, (0, 19)));
 }
+
 
 
 fn setup2(sprite_sheets: Res<SpriteSheets>,) {
@@ -247,6 +258,52 @@ fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
     let pos_y = 0.0 + (SCREEN_HEIGHT_PX / 2.) - (8. * y * SCALE);
 
     (pos_x, pos_y)
+}
+
+fn create_level(
+    mut commands: Commands,
+    levels: Res<Levels>,
+    game_data: Res<GameDataResource>,
+    textures: Res<Textures>,
+    mut clear_color: ResMut<ClearColor>,
+    query: Query<Entity, With<CavernTile>>,
+) {
+    if levels.is_changed() {
+        // Despawn any existing cavern tiles.
+        query.for_each(|entity| {
+            commands.entity(entity).despawn();
+        });
+
+        let current_cavern = levels.current_cavern;
+        let cavern = &game_data.caverns[current_cavern];
+        println!("Current cavern is {:?}", current_cavern);
+        let border_color = ink_to_color(&cavern.border_color);
+        clear_color.0 = border_color;
+
+        for y in 0..16 {
+            for x in 0..32 {
+                let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
+                let tile = CavernTile { x, y };
+                if let Some(sprite_index) = sprite_index {
+                    commands.spawn((
+                        tile,
+                        SpriteSheetBundle {
+                            texture_atlas: textures.tile_textures.clone(),
+                            sprite: TextureAtlasSprite {
+                                index: (current_cavern * 8) + sprite_index,
+                                anchor: Anchor::TopLeft,
+                                ..default() },
+                            transform: at_char_pos((x, y)),
+                            ..default()
+                        },
+                    ));
+                }
+                // pos_x += 8.0 * SCALE;
+            }
+        // pos_x = start_x;
+        // pos_y -= 8.0 * SCALE;
+        }
+    }
 }
 
 
@@ -304,6 +361,13 @@ fn animate_sprite(
     }
 }
 
+fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut levels: ResMut<Levels>) {
+    if keys.just_released(KeyCode::BracketRight) && levels.current_cavern < 19 {
+        levels.current_cavern += 1;
+    } else if keys.just_released(KeyCode::BracketLeft) && levels.current_cavern > 0 {
+        levels.current_cavern -= 1;
+    }
+}
 
 fn check_keyboard(keys: Res<Input<KeyCode>>, mut query: Query<(&mut WillyMotion, &mut AnimationIndices)>) {
     let (mut motion, mut indices) = query.single_mut();
