@@ -22,6 +22,7 @@ static WINDOW_HEIGHT_PX : f32 = SCREEN_HEIGHT_PX + (BORDER_WIDTH_PX * BORDER_MUL
 static PIX_PER_CHAR: f32 = 8.;
 static BORDER_MUL: f32 = 2.;
 
+/// Converts the ink of the given SpectrumColor into a bevy Color
 fn ink_to_color(spectrum_color: &SpectrumColor) -> Color {
     let spectrum_rgba = spectrum_color.ink_rgba();
     Color::Rgba { red: spectrum_rgba[0] as f32 / 255., green: spectrum_rgba[1] as f32 / 255., blue: spectrum_rgba[2] as f32 / 255., alpha: spectrum_rgba[3] as f32  / 255. }
@@ -46,6 +47,7 @@ fn main() -> Result<()>  {
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
         .add_startup_system(setup)
+        .add_startup_system(setup2.in_base_set(StartupSet::PostStartup))
         .add_system(animate_sprite)
         .add_system(check_keyboard)
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
@@ -81,7 +83,7 @@ struct WillyMotion {
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 struct SpriteSheets {
     willy_sprites: Handle<Image>,
     background_tiles: Handle<Image>
@@ -110,8 +112,6 @@ fn setup(
 
     let game_data = GameData::load("assets/ManicMiner.bin").unwrap();
     let tiles = game_data.cavern_tiles_rgba().unwrap();
-
-
 
     let image = Image::new(Extent3d { width: 128, height: 88, depth_or_array_layers: 1 }, TextureDimension::D2, tiles, TextureFormat::Rgba8Unorm);
     let bg_tile_handle = images.add(image);
@@ -203,11 +203,14 @@ fn setup(
         "High Score 000000   Score 000000",
         SpectrumColorName::Yellow, SpectrumColorName::Black, false));
     commands.spawn(tile_sprite(high_score_image_handle, (0, 19)));
-
-
-
 }
 
+
+fn setup2(sprite_sheets: Res<SpriteSheets>,) {
+    println!("Setup 2 called!");
+
+    println!("Sprite sheets is {:?}", sprite_sheets);
+}
 
 
 fn create_text(charset: &Charset, text: &str, ink: SpectrumColorName, paper: SpectrumColorName, bright: bool) -> Image {
