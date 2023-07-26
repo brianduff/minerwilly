@@ -1,8 +1,11 @@
-use bevy::{prelude::*, render::render_resource::{TextureFormat, TextureDimension, Extent3d}, sprite::Anchor};
-use minerdata::{gamedata::GameData, color::SpectrumColor, color::SpectrumColorName};
+use bevy::{prelude::*, sprite::Anchor};
+use gamedata::{GameDataPlugin, CavernTexture, GameDataResource};
+use minerdata::{color::SpectrumColor, color::SpectrumColorName};
 use anyhow::Result;
 use text::Charset;
 
+mod cavern;
+mod gamedata;
 mod text;
 
 static SCALE: f32 = 2.0;
@@ -28,7 +31,7 @@ fn ink_to_color(spectrum_color: &SpectrumColor) -> Color {
     Color::Rgba { red: spectrum_rgba[0] as f32 / 255., green: spectrum_rgba[1] as f32 / 255., blue: spectrum_rgba[2] as f32 / 255., alpha: spectrum_rgba[3] as f32  / 255. }
 }
 
-fn handle_anyhow_errors(In(result): In<Result<()>>) {
+pub fn handle_errors(In(result): In<Result<()>>) {
     if let Err(e) = result {
         eprintln!("Error: {}", e);
     }
@@ -46,8 +49,8 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_systems(Startup, setup)
-        .add_systems(PostStartup, setup2)
+        .add_plugins(GameDataPlugin)
+        .add_systems(PostStartup, setup)
         .add_systems(Update, (animate_sprite, check_keyboard, create_level, check_debug_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
@@ -85,7 +88,6 @@ struct AnimationTimer(Timer);
 #[derive(Resource, Debug)]
 struct SpriteSheets {
     willy_sprites: Handle<Image>,
-    background_tiles: Handle<Image>
 }
 
 #[derive(Resource, Debug)]
@@ -99,13 +101,6 @@ struct CavernTile {
     y: u8,
 }
 
-#[derive(Resource, Deref)]
-struct GameDataResource(GameData);
-
-#[derive(Resource)]
-struct Textures {
-    tile_textures: Handle<TextureAtlas>
-}
 
 fn setup(
     mut commands: Commands,
@@ -117,16 +112,7 @@ fn setup(
     println!("Setup called");
     let texture_handle = asset_server.load("textures/willysprites.png");
 
-    let game_data = GameData::load("assets/ManicMiner.bin").unwrap();
-    let tiles = game_data.cavern_tiles_rgba().unwrap();
-
-    let image = Image::new(Extent3d { width: 128, height: 88, depth_or_array_layers: 1 }, TextureDimension::D2, tiles, TextureFormat::Rgba8Unorm);
-    let bg_tile_handle = images.add(image);
-    let sprite_sheets = SpriteSheets { willy_sprites: texture_handle, background_tiles: bg_tile_handle.clone() };
-
-    let tile_textures = texture_atlases.add(TextureAtlas::from_grid(bg_tile_handle, Vec2::new(8.0, 8.0), 16, 10, None, None));
-
-    commands.insert_resource(Textures { tile_textures });
+    let sprite_sheets = SpriteSheets { willy_sprites: texture_handle };
 
     let texture_handle = asset_server.load("textures/willysprites.png");
 
@@ -142,7 +128,8 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
     commands.insert_resource(sprite_sheets);
     commands.insert_resource(levels);
-    commands.insert_resource(GameDataResource(game_data));
+
+    // Spawn Willy
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
@@ -155,35 +142,6 @@ fn setup(
         AnimationTimer(Timer::from_seconds(TIMER_TICK, TimerMode::Repeating)),
     ));
 
-
-    // let border_color = ink_to_color(&game_data.caverns.get(current_cavern).unwrap().border_color);
-    // clear_color.set_r(border_color.r());
-    // clear_color.set_g(border_color.g());
-    // clear_color.set_b(border_color.b());
-    // clear_color.set_a(border_color.a());
-
-    // for y in 0..16 {
-    //     for x in 0..32 {
-    //         let cavern = &game_data.caverns[current_cavern];
-    //         let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
-    //         if let Some(sprite_index) = sprite_index {
-    //             commands.spawn((
-    //                 SpriteSheetBundle {
-    //                     texture_atlas: tile_textures_handle.clone(),
-    //                     sprite: TextureAtlasSprite {
-    //                         index: (current_cavern * 8) + sprite_index,
-    //                         anchor: Anchor::TopLeft,
-    //                         ..default() },
-    //                     transform: at_char_pos((x, y)),
-    //                     ..default()
-    //                 },
-    //             ));
-    //         }
-    //         // pos_x += 8.0 * SCALE;
-    //     }
-    //     // pos_x = start_x;
-    //     // pos_y -= 8.0 * SCALE;
-    // }
 
     let charset = Charset::load("assets/charset.bin").unwrap();
 
@@ -264,7 +222,7 @@ fn create_level(
     mut commands: Commands,
     levels: Res<Levels>,
     game_data: Res<GameDataResource>,
-    textures: Res<Textures>,
+    textures: Res<CavernTexture>,
     mut clear_color: ResMut<ClearColor>,
     query: Query<Entity, With<CavernTile>>,
 ) {
@@ -288,7 +246,7 @@ fn create_level(
                     commands.spawn((
                         tile,
                         SpriteSheetBundle {
-                            texture_atlas: textures.tile_textures.clone(),
+                            texture_atlas: textures.clone(),
                             sprite: TextureAtlasSprite {
                                 index: (current_cavern * 8) + sprite_index,
                                 anchor: Anchor::TopLeft,
