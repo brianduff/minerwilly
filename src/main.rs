@@ -1,7 +1,6 @@
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::prelude::*;
 use cavern::CavernPlugin;
-use gamedata::{GameDataPlugin, CavernTexture};
-use minerdata::{color::SpectrumColor, color::SpectrumColorName};
+use gamedata::GameDataPlugin;
 use anyhow::Result;
 use text::TextPlugin;
 
@@ -91,7 +90,6 @@ struct SpriteSheets {
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut images: ResMut<Assets<Image>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 )  {
     println!("Setup called");
@@ -121,13 +119,6 @@ fn setup(
     ));
 
 
-
-    // let cavern_name_handle = images.add(create_text(
-    //     &charset,
-    //     &game_data.caverns[current_cavern].name,
-    //     SpectrumColorName::Black, SpectrumColorName::Yellow, false));
-    // commands.spawn(tile_sprite(cavern_name_handle, (0, 16)));
-
     // let air_bar_red_handle = images.add(create_text(
     //     &charset,
     //     "AIR       ",
@@ -151,55 +142,10 @@ fn setup(
 
 
 
-fn setup2(sprite_sheets: Res<SpriteSheets>,) {
-    println!("Setup 2 called!");
-
-    println!("Sprite sheets is {:?}", sprite_sheets);
-}
-
-
-// fn create_text(charset: &Charset, text: &str, ink: SpectrumColorName, paper: SpectrumColorName, bright: bool) -> Image {
-//     charset.to_image(&SpectrumColor::new(ink, paper, bright), text)
-// }
-
-fn tile_sprite(texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
-    SpriteBundle {
-        sprite: new_top_left_sprite(),
-        texture,
-        transform: at_char_pos(pos),
-        ..default()
-    }
-}
-
-fn new_top_left_sprite() -> Sprite {
-    Sprite { anchor: Anchor::TopLeft, ..default() }
-}
-
-fn new_transform() -> Transform {
-    Transform::from_scale(Vec3::splat(SCALE))
-}
-
-fn at_char_pos(pos: (u8, u8)) -> Transform {
-    let (screen_x, screen_y) = char_pos_to_screen(pos);
-    new_transform().with_translation(Vec3 { x: screen_x, y: screen_y, z: 0. })
-}
-
-// Converts a character position on screen to the top left screen
-// coordinate that contains that character.
-fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
-    let x : f32 = x.into();
-    let y : f32 = y.into();
-    let pos_x = 0.0 - (SCREEN_WIDTH_PX / 2.) + (8. * x * SCALE);
-    let pos_y = 0.0 + (SCREEN_HEIGHT_PX / 2.) - (8. * y * SCALE);
-
-    (pos_x, pos_y)
-}
 
 
 fn animate_sprite(
     time: Res<Time>,
-    images: Res<Assets<Image>>,
-    sprite_sheets: Res<SpriteSheets>,
     mut query: Query<(
         &mut AnimationIndices,
         &mut AnimationTimer,

@@ -44,9 +44,9 @@ impl TextAttributes {
     Self { ink, paper, bright: false }
   }
 
-  pub fn new_bright(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
-    Self { ink, paper, bright: true }
-  }
+  // pub fn new_bright(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
+  //   Self { ink, paper, bright: true }
+  // }
 }
 
 fn create_text(charset: &Charset, text: &str, attributes: &TextAttributes) -> Image {
