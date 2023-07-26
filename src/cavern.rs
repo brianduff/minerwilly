@@ -1,7 +1,7 @@
 use bevy::{prelude::*, sprite::Anchor};
 use minerdata::color::{SpectrumColor, SpectrumColorName};
-
-use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}};
+use anyhow::Result;
+use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}, handle_errors};
 
 pub struct CavernPlugin;
 
@@ -22,7 +22,7 @@ struct CavernName;
 impl Plugin for CavernPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
       app.add_systems(Startup, setup);
-      app.add_systems(Update, (spawn_cavern, check_debug_keyboard));
+      app.add_systems(Update, (spawn_cavern.pipe(handle_errors), check_debug_keyboard));
     }
 }
 
@@ -54,7 +54,7 @@ fn spawn_cavern(
   mut clear_color: ResMut<ClearColor>,
   tile_query: Query<Entity, With<CavernTile>>,
   mut cavern_name_query: Query<&mut Text, With<CavernName>>,
-) {
+) -> Result<()> {
   if cavern.is_changed() {
       // Despawn any existing cavern tiles.
       tile_query.for_each(|entity| {
@@ -88,8 +88,10 @@ fn spawn_cavern(
           }
       }
 
-      cavern_name_query.get_single_mut().unwrap().value = cavern.name.to_owned();
+      cavern_name_query.get_single_mut()?.value = cavern.name.to_owned();
+
   }
+  Ok(())
 }
 
 fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut cavern: ResMut<Cavern>) {
