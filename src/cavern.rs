@@ -1,7 +1,7 @@
 use bevy::{prelude::*, sprite::Anchor};
-use minerdata::color::SpectrumColor;
+use minerdata::color::{SpectrumColor, SpectrumColorName};
 
-use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos};
+use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}};
 
 pub struct CavernPlugin;
 
@@ -16,6 +16,8 @@ struct CavernTile {
     y: u8,
 }
 
+#[derive (Component)]
+struct CavernName;
 
 impl Plugin for CavernPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -26,6 +28,11 @@ impl Plugin for CavernPlugin {
 
 fn setup(mut commands: Commands) {
   commands.insert_resource(Cavern{ cavern_number: 0 });
+
+  // Spawn the cavern name
+  commands.spawn((CavernName, Text::new(
+    "                     ", (0, 16),
+    TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow))));
 }
 
 /// Converts the ink of the given SpectrumColor into a bevy Color
@@ -45,11 +52,12 @@ fn spawn_cavern(
   game_data: Res<GameDataResource>,
   textures: Res<CavernTexture>,
   mut clear_color: ResMut<ClearColor>,
-  query: Query<Entity, With<CavernTile>>,
+  tile_query: Query<Entity, With<CavernTile>>,
+  mut cavern_name_query: Query<&mut Text, With<CavernName>>,
 ) {
   if cavern.is_changed() {
       // Despawn any existing cavern tiles.
-      query.for_each(|entity| {
+      tile_query.for_each(|entity| {
           commands.entity(entity).despawn();
       });
 
@@ -79,6 +87,8 @@ fn spawn_cavern(
               }
           }
       }
+
+      cavern_name_query.get_single_mut().unwrap().value = cavern.name.to_owned();
   }
 }
 

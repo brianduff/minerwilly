@@ -3,7 +3,7 @@ use cavern::CavernPlugin;
 use gamedata::{GameDataPlugin, CavernTexture};
 use minerdata::{color::SpectrumColor, color::SpectrumColorName};
 use anyhow::Result;
-use text::Charset;
+use text::TextPlugin;
 
 mod cavern;
 mod gamedata;
@@ -46,7 +46,7 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_plugins((GameDataPlugin, CavernPlugin))
+        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin))
         .add_systems(PostStartup, setup)
         .add_systems(Update, (animate_sprite, check_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
@@ -97,11 +97,7 @@ fn setup(
     println!("Setup called");
     let texture_handle = asset_server.load("textures/willysprites.png");
 
-    let sprite_sheets = SpriteSheets { willy_sprites: texture_handle };
-
-    let texture_handle = asset_server.load("textures/willysprites.png");
-
-
+    let sprite_sheets = SpriteSheets { willy_sprites: texture_handle.clone() };
     let texture_atlas =
         TextureAtlas::from_grid(texture_handle, Vec2::new(16.0, 16.0), 16, 9, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
@@ -125,7 +121,6 @@ fn setup(
     ));
 
 
-    let charset = Charset::load("assets/charset.bin").unwrap();
 
     // let cavern_name_handle = images.add(create_text(
     //     &charset,
@@ -133,25 +128,25 @@ fn setup(
     //     SpectrumColorName::Black, SpectrumColorName::Yellow, false));
     // commands.spawn(tile_sprite(cavern_name_handle, (0, 16)));
 
-    let air_bar_red_handle = images.add(create_text(
-        &charset,
-        "AIR       ",
-        SpectrumColorName::White, SpectrumColorName::Red, true
-    ));
-    commands.spawn(tile_sprite(air_bar_red_handle, (0, 17)));
+    // let air_bar_red_handle = images.add(create_text(
+    //     &charset,
+    //     "AIR       ",
+    //     SpectrumColorName::White, SpectrumColorName::Red, true
+    // ));
+    // commands.spawn(tile_sprite(air_bar_red_handle, (0, 17)));
 
-    let air_bar_green_handle = images.add(create_text(
-        &charset,
-        "                       ",
-        SpectrumColorName::White, SpectrumColorName::Green, true
-    ));
-    commands.spawn(tile_sprite(air_bar_green_handle, (9, 17)));
+    // let air_bar_green_handle = images.add(create_text(
+    //     &charset,
+    //     "                       ",
+    //     SpectrumColorName::White, SpectrumColorName::Green, true
+    // ));
+    // commands.spawn(tile_sprite(air_bar_green_handle, (9, 17)));
 
-    let high_score_image_handle = images.add(create_text(
-        &charset,
-        "High Score 000000   Score 000000",
-        SpectrumColorName::Yellow, SpectrumColorName::Black, false));
-    commands.spawn(tile_sprite(high_score_image_handle, (0, 19)));
+    // let high_score_image_handle = images.add(create_text(
+    //     &charset,
+    //     "High Score 000000   Score 000000",
+    //     SpectrumColorName::Yellow, SpectrumColorName::Black, false));
+    // commands.spawn(tile_sprite(high_score_image_handle, (0, 19)));
 }
 
 
@@ -163,9 +158,9 @@ fn setup2(sprite_sheets: Res<SpriteSheets>,) {
 }
 
 
-fn create_text(charset: &Charset, text: &str, ink: SpectrumColorName, paper: SpectrumColorName, bright: bool) -> Image {
-    charset.to_image(&SpectrumColor::new(ink, paper, bright), text)
-}
+// fn create_text(charset: &Charset, text: &str, ink: SpectrumColorName, paper: SpectrumColorName, bright: bool) -> Image {
+//     charset.to_image(&SpectrumColor::new(ink, paper, bright), text)
+// }
 
 fn tile_sprite(texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
     SpriteBundle {
