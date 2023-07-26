@@ -46,10 +46,9 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_startup_system(setup)
-        .add_startup_system(setup2.in_base_set(StartupSet::PostStartup))
-        .add_system(animate_sprite)
-        .add_system(check_keyboard)
+        .add_systems(Startup, setup)
+        .add_systems(PostStartup, setup2)
+        .add_systems(Update, (animate_sprite, check_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
 
