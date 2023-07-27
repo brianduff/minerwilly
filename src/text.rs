@@ -19,11 +19,11 @@ pub struct Text {
 }
 
 impl Text {
-  pub fn new(value: &str, pos: (u8, u8), attributes: TextAttributes) -> Self {
+  pub fn new(value: &str, pos: (u8, u8), attributes: &TextAttributes) -> Self {
     Text {
       value: value.to_owned(),
       pos,
-      attributes,
+      attributes: attributes.clone(),
       sprite_entity: None
     }
   }
@@ -32,7 +32,7 @@ impl Text {
 #[derive(Resource, Deref)]
 struct CharsetResource(Charset);
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct TextAttributes {
   ink: SpectrumColorName,
   paper: SpectrumColorName,
@@ -44,9 +44,9 @@ impl TextAttributes {
     Self { ink, paper, bright: false }
   }
 
-  // pub fn new_bright(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
-  //   Self { ink, paper, bright: true }
-  // }
+  pub fn new_bright(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
+    Self { ink, paper, bright: true }
+  }
 }
 
 fn create_text(charset: &Charset, text: &str, attributes: &TextAttributes) -> Image {

@@ -2,11 +2,13 @@ use bevy::prelude::*;
 use cavern::CavernPlugin;
 use gamedata::GameDataPlugin;
 use anyhow::Result;
+use score::ScorePlugin;
 use text::TextPlugin;
 
 mod cavern;
 mod gamedata;
 mod position;
+mod score;
 mod text;
 
 pub static SCALE: f32 = 2.0;
@@ -45,7 +47,7 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin))
+        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin, ScorePlugin))
         .add_systems(PostStartup, setup)
         .add_systems(Update, (animate_sprite, check_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))

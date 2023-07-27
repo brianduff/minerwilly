@@ -32,7 +32,7 @@ fn setup(mut commands: Commands) {
   // Spawn the cavern name
   commands.spawn((CavernName, Text::new(
     "                     ", (0, 16),
-    TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow))));
+    &TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow))));
 }
 
 /// Converts the ink of the given SpectrumColor into a bevy Color
