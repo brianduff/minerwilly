@@ -1,3 +1,4 @@
+use air::AirPlugin;
 use bevy::prelude::*;
 use cavern::CavernPlugin;
 use gamedata::GameDataPlugin;
@@ -5,11 +6,14 @@ use anyhow::Result;
 use score::ScorePlugin;
 use text::TextPlugin;
 
+mod air;
 mod cavern;
+mod color;
 mod gamedata;
 mod position;
 mod score;
 mod text;
+mod willy;
 
 pub static SCALE: f32 = 2.0;
 static CELLSIZE: f32 = 8.0 * SCALE;
@@ -47,7 +51,7 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin, ScorePlugin))
+        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin, ScorePlugin, AirPlugin))
         .add_systems(PostStartup, setup)
         .add_systems(Update, (animate_sprite, check_keyboard))
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))

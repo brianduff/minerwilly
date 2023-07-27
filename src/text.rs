@@ -4,7 +4,7 @@ use bevy::{
   sprite::Anchor,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use minerdata::color::{SpectrumColor, SpectrumColorName};
+use crate::color::{SpectrumColor, SpectrumColorName};
 use std::io::Read;
 use std::{fs::File, path::Path};
 

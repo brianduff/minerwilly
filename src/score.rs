@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use bevy::prelude::*;
-use minerdata::color::SpectrumColorName;
+use crate::color::SpectrumColorName;
 
 pub struct ScorePlugin;
 

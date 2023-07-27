@@ -1,13 +1,19 @@
-//! Plugin providing game data
+//! Plugin providing game data. At the moment this is hardcoded to be based
+//! on a manic binary z80 binary, and extracts the data directly from that.
+
+mod data;
+mod cavern;
+mod sprite;
 
 use anyhow::Result;
 use bevy::{
   prelude::*,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use minerdata::gamedata::GameData;
 
 use crate::handle_errors;
+
+use self::{cavern::Cavern, data::GameData};
 
 pub struct GameDataPlugin;
 
