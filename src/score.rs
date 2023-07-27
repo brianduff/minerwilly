@@ -18,6 +18,7 @@ impl Score {
   pub fn add(&mut self, amount: u16) {
     self.score += amount;
     println!("Set score to {}", self.score);
+    // In the original game, this doesn't update until the game is over
 //    self.high_score = Ord::max(self.score, self.high_score);
   }
 }
