@@ -1,5 +1,5 @@
 use bevy::{prelude::*, sprite::Anchor};
-use crate::color::{SpectrumColor, SpectrumColorName};
+use crate::color::SpectrumColorName;
 use anyhow::Result;
 use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}, handle_errors};
 
@@ -35,16 +35,6 @@ fn setup(mut commands: Commands) {
     &TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow))));
 }
 
-/// Converts the ink of the given SpectrumColor into a bevy Color
-fn ink_to_color(spectrum_color: &SpectrumColor) -> Color {
-  let spectrum_rgba = spectrum_color.ink_rgba();
-  Color::Rgba {
-    red: spectrum_rgba[0] as f32 / 255.,
-    green: spectrum_rgba[1] as f32 / 255.,
-    blue: spectrum_rgba[2] as f32 / 255.,
-    alpha: spectrum_rgba[3] as f32  / 255. }
-}
-
 
 fn spawn_cavern(
   mut commands: Commands,
@@ -64,7 +54,7 @@ fn spawn_cavern(
       let current_cavern = cavern.cavern_number;
       let cavern = &game_data.caverns[current_cavern];
       println!("Current cavern is {:?}", current_cavern);
-      let border_color = ink_to_color(&cavern.border_color);
+      let border_color = cavern.border_color.ink_color();
       clear_color.0 = border_color;
 
       for y in 0..16 {
