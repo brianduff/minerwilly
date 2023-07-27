@@ -26,20 +26,21 @@ pub enum SpectrumColorName {
     White
 }
 
-impl Into<u8> for SpectrumColorName {
-    fn into(self) -> u8 {
-        match self {
-            Self::Black => 0,
-            Self::Blue => 1,
-            Self::Red => 2,
-            Self::Magenta => 3,
-            Self::Green => 4,
-            Self::Cyan => 5,
-            Self::Yellow => 6,
-            Self::White => 7
+impl From<SpectrumColorName> for u8 {
+    fn from(value: SpectrumColorName) -> Self {
+        match value {
+            SpectrumColorName::Black => 0,
+            SpectrumColorName::Blue => 1,
+            SpectrumColorName::Red => 2,
+            SpectrumColorName::Magenta => 3,
+            SpectrumColorName::Green => 4,
+            SpectrumColorName::Cyan => 5,
+            SpectrumColorName::Yellow => 6,
+            SpectrumColorName::White => 7
         }
     }
 }
+
 
 impl SpectrumColor {
 
