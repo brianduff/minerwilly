@@ -2,7 +2,7 @@ use bevy::{prelude::*, sprite::Anchor};
 use crate::color::SpectrumColorName;
 use anyhow::Result;
 use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}, handle_errors};
-
+use crate::position::Layer;
 pub struct CavernPlugin;
 
 #[derive(Resource, Debug)]
@@ -70,7 +70,7 @@ fn spawn_cavern(
                               index: (current_cavern * 8) + sprite_index,
                               anchor: Anchor::TopLeft,
                               ..default() },
-                          transform: at_char_pos((x, y)),
+                          transform: at_char_pos(Layer::Tiles,(x, y)),
                           ..default()
                       },
                   ));

@@ -4,7 +4,7 @@ use bevy::{
   sprite::Anchor,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use crate::color::{SpectrumColor, SpectrumColorName};
+use crate::{color::{SpectrumColor, SpectrumColorName}, position::Layer};
 use std::io::Read;
 use std::{fs::File, path::Path};
 
@@ -57,7 +57,7 @@ fn tile_sprite(texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
   SpriteBundle {
       sprite: new_top_left_sprite(),
       texture,
-      transform: at_char_pos(pos),
+      transform: at_char_pos(Layer::Tiles, pos),
       ..default()
   }
 }
@@ -145,12 +145,7 @@ impl Charset {
         let char_index = charcode - 32;
         let offset: usize = char_index as usize * 8;
         let bitmap = &self.bytes[offset..offset + 8];
-        let mut mask: u8 = 0b10000000;
-        for _ in 0..=7 {
-          let ink = (bitmap[r] & mask) != 0;
-          buffer.extend_from_slice(if ink { ink_rgba } else { paper_rgba });
-          mask >>= 1;
-        }
+        crate::bitmap::to_rgba(&mut buffer, &bitmap[r], ink_rgba, paper_rgba);
       });
     }
 
@@ -173,6 +168,7 @@ mod tests {
         ink: 0,
         paper: 6,
         bright: false,
+        ..Default::default()
       },
       text,
     );

@@ -3,7 +3,7 @@ use bevy::prelude::Color;
 
 /// A ZX Spectrum color. Consists of an ink value 0-7, a paper
 /// value 0-7, and a boolean bright flag.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Default)]
 pub struct SpectrumColor {
   // The ink color index 0..7
   pub ink: u8,
@@ -11,6 +11,10 @@ pub struct SpectrumColor {
   pub paper: u8,
   // The bright flag
   pub bright: bool,
+  // The transparent paper flag. This indicates to the rendering
+  // system that the paper should be rendered as a transparent
+  // pixel.
+  pub transparent_background: bool
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -47,12 +51,22 @@ impl SpectrumColor {
       ink: ink.into(),
       paper: paper.into(),
       bright,
+      ..Default::default()
+    }
+  }
+
+  pub fn new_transparent_bg(ink: SpectrumColorName, bright: bool) -> Self {
+    SpectrumColor {
+      ink: ink.into(),
+      paper: SpectrumColorName::Black.into(),
+      bright,
+      transparent_background: true
     }
   }
 
   /// Converts a color into an rgba color value
-  fn to_rgba(value: &u8, bright: &bool) -> Vec<u8> {
-    let code = if *bright { 0xff } else { 0xee };
+  fn to_rgba(&self, value: &u8) -> Vec<u8> {
+    let code = if self.bright { 0xff } else { 0xee };
 
     let mut red = 0;
     let mut green = 0;
@@ -74,12 +88,17 @@ impl SpectrumColor {
 
   /// Returns the rgba representation of the ink of this color.
   pub fn ink_rgba(&self) -> Vec<u8> {
-    Self::to_rgba(&self.ink, &self.bright)
+    self.to_rgba(&self.ink)
   }
 
   /// Returns the rgba representation of the paper of this color.
   pub fn paper_rgba(&self) -> Vec<u8> {
-    Self::to_rgba(&self.paper, &self.bright)
+    let mut rgba = self.to_rgba(&self.paper);
+    if self.transparent_background {
+      rgba[3] = 0;
+    }
+
+    rgba
   }
 
   pub fn ink_color(&self) -> Color {
@@ -109,7 +128,7 @@ impl TryFrom<&u8> for SpectrumColor {
     let paper: u8 = (b >> 3) & 0b111;
     let bright = ((b >> 6) & 1) == 1;
 
-    Ok(SpectrumColor { ink, paper, bright })
+    Ok(SpectrumColor { ink, paper, bright, ..Default::default() })
   }
 }
 
@@ -146,7 +165,8 @@ mod tests {
       u8::from(&SpectrumColor {
         paper: 3,
         ink: 4,
-        bright: true
+        bright: true,
+        ..Default::default()
       }),
       0b1011100
     );
@@ -154,7 +174,8 @@ mod tests {
       u8::from(&SpectrumColor {
         paper: 3,
         ink: 4,
-        bright: false
+        bright: false,
+        ..Default::default()
       }),
       0b0011100
     );
@@ -162,7 +183,8 @@ mod tests {
       u8::from(&SpectrumColor {
         paper: 7,
         ink: 7,
-        bright: true
+        bright: true,
+        ..Default::default()
       }),
       0b1111111
     );
@@ -174,6 +196,7 @@ mod tests {
       paper: 5,
       ink: 2,
       bright: true,
+      ..Default::default()
     };
     assert_eq!(vec![0xff, 0x00, 0x00, 0xff], color.ink_rgba());
     assert_eq!(vec![0x00, 0xff, 0xff, 0xff], color.paper_rgba());

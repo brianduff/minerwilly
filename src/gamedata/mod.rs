@@ -13,7 +13,7 @@ use bevy::{
 
 use crate::handle_errors;
 
-use self::{cavern::Cavern, data::GameData};
+use self::data::GameData;
 
 pub struct GameDataPlugin;
 

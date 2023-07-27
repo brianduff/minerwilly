@@ -3,10 +3,12 @@ use std::{fs::File, io::SeekFrom, path::Path};
 use anyhow::Result;
 use std::io::{Read, Seek};
 
+use crate::bitmap::Bitmap;
+
 use super::cavern::Cavern;
 
-const WILLY_SPRITE_OFFSET: u64 = 0xb8100;
-const WILLY_SPRITE_SIZE_BYTES: usize = 16 * 16;
+const WILLY_SPRITE_OFFSET: u64 = 0x8200;
+const WILLY_SPRITE_SIZE_BYTES: usize = 8 * 4;
 
 const CAVERNS_OFFSET: u64 = 0xb000;
 const CAVERN_COUNT: usize = 20;
@@ -15,19 +17,19 @@ const CAVERN_DATA_SIZE_BYTES: usize = 1024;
 #[derive(Debug)]
 pub struct GameData {
     pub caverns: Vec<Cavern>,
-//    pub willy_sprites: Vec<Sprite>,
+    pub willy_sprites: Vec<Bitmap>,
 }
 
 impl GameData {
     /// Load game data from a manic miner binary file.
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut file = File::open(path)?;
+        let file = File::open(path)?;
 
-        // let willy_sprite = extract_willy_sprite(file)?;
-        let caverns = extract_caverns(file)?;
+        let willy_sprites = extract_willy_sprites(&file)?;
+        let caverns = extract_caverns(&file)?;
 
 
-        Ok(Self { caverns })
+        Ok(Self { caverns, willy_sprites })
     }
 
     pub fn cavern_tiles_rgba(&self) -> Result<Vec<u8>> {
@@ -51,7 +53,6 @@ impl GameData {
                 let sprite_col = pixel_col % 8;
 
                 if sprite_num < sprites.len() {
-                    //println!("[{},{},{}]", sprite_num, sprite_row, sprite_col);
                     merged.push(sprites[sprite_num].to_rgba()[sprite_row][sprite_col * 4]);
                     merged.push(sprites[sprite_num].to_rgba()[sprite_row][sprite_col * 4 + 1]);
                     merged.push(sprites[sprite_num].to_rgba()[sprite_row][sprite_col * 4 + 2]);
@@ -68,23 +69,24 @@ impl GameData {
     }
 }
 
-// fn extract_willy_sprite(mut file: File) -> Result<Vec<Sprite>> {
-//   let mut buf = vec![0; WILLY_SPRITE_SIZE_BYTES];
-//   file.seek(SeekFrom::Start(WILLY_SPRITE_OFFSET))?;
-//   file.read_exact(&mut buf)?;
+fn extract_willy_sprites(mut file: &File) -> Result<Vec<Bitmap>> {
+    let mut result = Vec::with_capacity(8);
+    let mut buffer = vec![0; WILLY_SPRITE_SIZE_BYTES];
 
-//   let result = Vec::with_capacity(8);
+    let mut pos = WILLY_SPRITE_OFFSET;
+    for _ in 0..8 {
+        file.seek(SeekFrom::Start(pos))?;
+        file.read_exact(&mut buffer)?;
 
-//   let mut pos = 0;
-//   loop {
-//     let sprite = Sprite::try_from_bytes(pixel_width, pixel_height, bytes)
-//     pos += 16;
-//   }
+        result.push(Bitmap::create(16, 16, &buffer));
+        pos += WILLY_SPRITE_SIZE_BYTES as u64;
+    }
 
-//   Ok(Sprite::try_from_bytes(16, 16, bytes))
-// }
 
-fn extract_caverns(mut file: File) -> Result<Vec<Cavern>> {
+    Ok(result)
+}
+
+fn extract_caverns(mut file: &File) -> Result<Vec<Cavern>> {
     let mut buf = vec![0; CAVERN_DATA_SIZE_BYTES];
 
     file.seek(SeekFrom::Start(CAVERNS_OFFSET))?;
