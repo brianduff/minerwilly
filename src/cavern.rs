@@ -3,6 +3,8 @@ use crate::color::SpectrumColorName;
 use anyhow::Result;
 use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}, handle_errors};
 use crate::position::Layer;
+
+/// Adds drawing the current cavern
 pub struct CavernPlugin;
 
 #[derive(Resource, Debug)]

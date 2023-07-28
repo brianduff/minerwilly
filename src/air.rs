@@ -3,6 +3,7 @@ use crate::color::SpectrumColorName;
 
 use crate::text::{Text, TextAttributes};
 
+/// Adds the air supply bar that shows how much time Willy has left until he runs out of air.
 pub struct AirPlugin;
 
 impl Plugin for AirPlugin {
