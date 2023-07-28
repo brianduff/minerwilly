@@ -21,7 +21,6 @@ impl Bitmap {
   /// It is not expected to contain any attribute data.
   /// The width and height must be a multiple of 8.
   pub fn create(width: usize, height: usize, data: &[u8]) -> Bitmap {
-    println!("Bitmap with data: {:?}", data);
     Bitmap {
       width,
       height,
@@ -52,7 +51,6 @@ impl Bitmap {
   /// Renders this sprite to a bevy image using the given color attributes.
   pub fn render_with_color(&self, color: &SpectrumColor) -> Image {
     let data = self.render_to_rgba(color);
-    println!("Rendering image with color: {:?}: \n{:?}", color, data);
     Image::new(
       Extent3d {
         width: self.width as u32,
