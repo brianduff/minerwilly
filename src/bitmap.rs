@@ -13,7 +13,7 @@ pub struct Bitmap {
   data: Vec<u8>,
   width: usize,
   height: usize,
-  color: Option<SpectrumColor>,
+  pub color: Option<SpectrumColor>,
 }
 
 impl Bitmap {
@@ -29,8 +29,22 @@ impl Bitmap {
     }
   }
 
-  /// Renders this bitmap as an image using its prefered color. If no color is
-  /// defined, this will panic.
+  /// Creates a bitmap of the given width and height from the given slice of data.
+  /// It is expected that the first byte of the data contains attribute data, which
+  /// will be used to determine the color the sprite is rendered with.
+  pub fn create_with_attributes(width: usize, height: usize, data: &[u8]) -> Bitmap {
+    // Read the first byte of attribute data to get the color.
+    let color: SpectrumColor = data[0].into();
+    Bitmap {
+      width,
+      height,
+      color: Some(color),
+      data: data[1..].to_vec()
+    }
+  }
+
+  /// Renders this bitmap as an image using its prefered color.
+  /// WARNING: If no color is defined, this will panic.
   pub fn render(&self) -> Image {
     self.render_with_color(self.color.as_ref().unwrap())
   }

@@ -51,7 +51,7 @@ impl TryFrom<&[u8]> for Cavern {
       pos = end;
     }
 
-    let border_color = SpectrumColor::try_from(&bytes[627])?;
+    let border_color = SpectrumColor::try_from(bytes[627])?;
 
     Ok(Cavern {
       layout,
@@ -86,7 +86,7 @@ impl TryFrom<&[u8]> for Layout {
     let mut cells: Vec<SpectrumColor> = Vec::with_capacity(512);
 
     for byte in bytes {
-      cells.push(SpectrumColor::try_from(byte)?)
+      cells.push(SpectrumColor::try_from(*byte)?)
     }
 
     Ok(Layout { cells })

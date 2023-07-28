@@ -23,7 +23,7 @@ impl Sprite {
       pixel_height
     );
 
-    let color = SpectrumColor::try_from(&bytes[0])?;
+    let color = SpectrumColor::try_from(bytes[0])?;
     let bytes = bytes[1..].to_owned();
 
     Ok(Sprite {

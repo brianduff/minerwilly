@@ -120,15 +120,13 @@ fn convert_color(rgba: &[u8]) -> Color {
     alpha: rgba[3] as f32  / 255. }
 }
 
-impl TryFrom<&u8> for SpectrumColor {
-  type Error = anyhow::Error;
-
-  fn try_from(b: &u8) -> Result<Self> {
+impl From<u8> for SpectrumColor {
+  fn from(b: u8) -> Self {
     let ink: u8 = b & 0b111;
     let paper: u8 = (b >> 3) & 0b111;
     let bright = ((b >> 6) & 1) == 1;
 
-    Ok(SpectrumColor { ink, paper, bright, ..Default::default() })
+    SpectrumColor { ink, paper, bright, ..Default::default() }
   }
 }
 
@@ -137,7 +135,7 @@ impl TryFrom<&str> for SpectrumColor {
 
   fn try_from(s: &str) -> Result<Self> {
     let value: u8 = u8::from_str_radix(s, 16)?;
-    SpectrumColor::try_from(&value)
+    Ok(SpectrumColor::from(value))
   }
 }
 
