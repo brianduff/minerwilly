@@ -4,7 +4,7 @@ use crate::{
   color::{SpectrumColor, SpectrumColorName},
   gamedata::GameDataResource,
   position::{at_char_pos, Layer},
-  CELLSIZE, SCALE, TIMER_TICK,
+  CELLSIZE, TIMER_TICK,
 };
 
 pub struct WillyPlugin;

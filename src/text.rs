@@ -23,7 +23,7 @@ impl Text {
     Text {
       value: value.to_owned(),
       pos,
-      attributes: attributes.clone(),
+      attributes: *attributes,
       sprite_entity: None
     }
   }

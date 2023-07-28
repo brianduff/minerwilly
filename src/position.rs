@@ -27,7 +27,7 @@ pub fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
 /// The layer that a sprite is rendered at. This is translated into its
 /// z-coordinate.
 pub enum Layer {
-  Background = 0,
+  //Background = 0,
   Tiles = 1,
   Characters = 2
 }

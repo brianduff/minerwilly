@@ -11,10 +11,7 @@ struct Cavern {
 }
 
 #[derive (Component, Debug)]
-struct CavernTile {
-    x: u8,
-    y: u8,
-}
+struct CavernTile;
 
 #[derive (Component)]
 struct CavernName;
@@ -60,10 +57,9 @@ fn spawn_cavern(
       for y in 0..16 {
           for x in 0..32 {
               let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
-              let tile = CavernTile { x, y };
               if let Some(sprite_index) = sprite_index {
                   commands.spawn((
-                      tile,
+                      CavernTile,
                       SpriteSheetBundle {
                           texture_atlas: textures.clone(),
                           sprite: TextureAtlasSprite {
