@@ -1,15 +1,13 @@
 use anyhow::Result;
 
-use crate::color::SpectrumColor;
-
-use super::sprite::Sprite;
+use crate::{color::SpectrumColor, bitmap::Bitmap};
 
 // A cavern
 #[derive(Debug)]
 pub struct Cavern {
   pub layout: Layout,
   pub name: String,
-  pub tile_sprites: Vec<Sprite>,
+  pub tile_bitmaps: Vec<Bitmap>,
   pub border_color: SpectrumColor,
 }
 
@@ -17,8 +15,8 @@ impl Cavern {
   pub fn get_bg_sprite_index(&self, char_x: usize, char_y: usize) -> Option<usize> {
     let color = self.layout.get_cell_color(char_x, char_y);
 
-    for (i, s) in self.tile_sprites.iter().enumerate() {
-      if *color == s.color {
+    for (i, s) in self.tile_bitmaps.iter().enumerate() {
+      if s.color.as_ref().unwrap().eq(color) {
         return Some(i);
       }
     }
@@ -43,11 +41,11 @@ impl TryFrom<&[u8]> for Cavern {
     let layout = Layout::try_from(&bytes[0..512])?;
     let name = core::str::from_utf8(&bytes[512..544])?.to_owned();
 
-    let mut tile_sprites = Vec::with_capacity(8);
+    let mut tile_bitmaps = Vec::with_capacity(8);
     let mut pos = 544;
     for _ in 0..8 {
       let end = pos + 9;
-      tile_sprites.push(Sprite::try_from_bytes(8, 8, &bytes[pos..end])?);
+      tile_bitmaps.push(Bitmap::create_with_attributes(8, 8, &bytes[pos..end]));
       pos = end;
     }
 
@@ -56,7 +54,7 @@ impl TryFrom<&[u8]> for Cavern {
     Ok(Cavern {
       layout,
       name,
-      tile_sprites,
+      tile_bitmaps,
       border_color,
     })
   }

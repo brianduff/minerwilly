@@ -1,7 +1,7 @@
 use crate::color::SpectrumColorName;
 use crate::position::Layer;
 use crate::{
-  gamedata::{CavernTexture, GameDataResource},
+  gamedata::GameDataResource,
   handle_errors,
   position::at_char_pos,
   text::{Text, TextAttributes},
@@ -66,7 +66,7 @@ fn spawn_cavern(
   mut commands: Commands,
   cavern: Res<Cavern>,
   game_data: Res<GameDataResource>,
-  textures: Res<CavernTexture>,
+  mut images: ResMut<Assets<Image>>,
   tile_query: Query<Entity, With<CavernTile>>,
 ) -> Result<()> {
   if cavern.is_changed() {
@@ -77,18 +77,25 @@ fn spawn_cavern(
 
     let current_cavern = cavern.cavern_number;
     let cavern = &game_data.caverns[current_cavern];
+
+    // Create images for the tiles in this cavern so we can spawn sprites for them
+    let mut image_handles = Vec::new();
+    for tile in cavern.tile_bitmaps.iter() {
+      image_handles.push(images.add(tile.render()));
+    }
+
     println!("Current cavern is {:?}", current_cavern);
 
     for y in 0..16 {
       for x in 0..32 {
         let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
         if let Some(sprite_index) = sprite_index {
+          let texture = &image_handles[sprite_index];
           commands.spawn((
             CavernTile,
-            SpriteSheetBundle {
-              texture_atlas: textures.clone(),
-              sprite: TextureAtlasSprite {
-                index: (current_cavern * 8) + sprite_index,
+            SpriteBundle {
+              texture: texture.clone(),
+              sprite: Sprite {
                 anchor: Anchor::TopLeft,
                 ..default()
               },
