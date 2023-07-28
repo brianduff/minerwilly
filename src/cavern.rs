@@ -1,83 +1,104 @@
-use bevy::{prelude::*, sprite::Anchor};
 use crate::color::SpectrumColorName;
-use anyhow::Result;
-use crate::{gamedata::{GameDataResource, CavernTexture}, position::at_char_pos, text::{Text, TextAttributes}, handle_errors};
 use crate::position::Layer;
+use crate::{
+  gamedata::{CavernTexture, GameDataResource},
+  handle_errors,
+  position::at_char_pos,
+  text::{Text, TextAttributes},
+};
+use anyhow::Result;
+use bevy::{prelude::*, sprite::Anchor};
 
 /// Adds drawing the current cavern
 pub struct CavernPlugin;
 
 #[derive(Resource, Debug)]
 struct Cavern {
-    cavern_number: usize
+  cavern_number: usize,
 }
 
-#[derive (Component, Debug)]
+#[derive(Component, Debug)]
 struct CavernTile;
 
-#[derive (Component)]
+#[derive(Component)]
 struct CavernName;
 
 impl Plugin for CavernPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-      app.add_systems(Startup, setup);
-      app.add_systems(Update, (spawn_cavern.pipe(handle_errors), check_debug_keyboard));
-    }
+  fn build(&self, app: &mut bevy::prelude::App) {
+    app.add_systems(Startup, setup);
+    app.add_systems(
+      Update,
+      (update_border, update_cavern_name, spawn_cavern.pipe(handle_errors), check_debug_keyboard),
+    );
+  }
 }
 
 fn setup(mut commands: Commands) {
-  commands.insert_resource(Cavern{ cavern_number: 0 });
+  commands.insert_resource(Cavern { cavern_number: 0 });
 
   // Spawn the cavern name
-  commands.spawn((CavernName, Text::new(
-    "                     ", (0, 16),
-    &TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow))));
+  commands.spawn((
+    CavernName,
+    Text::new(
+      "                     ",
+      (0, 16),
+      &TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow),
+    ),
+  ));
 }
 
+fn update_border(game_data: Res<GameDataResource>, cavern: Res<Cavern>, mut clear_color: ResMut<ClearColor>) {
+  if cavern.is_changed() {
+    let cavern = &game_data.caverns[cavern.cavern_number];
+    let border_color = cavern.border_color.ink_color();
+    clear_color.0 = border_color;
+  }
+}
+
+fn update_cavern_name(game_data: Res<GameDataResource>, cavern: Res<Cavern>, mut query: Query<&mut Text, With<CavernName>>) {
+  if cavern.is_changed() {
+    let name = &game_data.caverns[cavern.cavern_number].name;
+    query.get_single_mut().unwrap().value = name.to_owned();
+  }
+}
 
 fn spawn_cavern(
   mut commands: Commands,
   cavern: Res<Cavern>,
   game_data: Res<GameDataResource>,
   textures: Res<CavernTexture>,
-  mut clear_color: ResMut<ClearColor>,
   tile_query: Query<Entity, With<CavernTile>>,
-  mut cavern_name_query: Query<&mut Text, With<CavernName>>,
 ) -> Result<()> {
   if cavern.is_changed() {
-      // Despawn any existing cavern tiles.
-      tile_query.for_each(|entity| {
-          commands.entity(entity).despawn();
-      });
+    // Despawn any existing cavern tiles.
+    tile_query.for_each(|entity| {
+      commands.entity(entity).despawn();
+    });
 
-      let current_cavern = cavern.cavern_number;
-      let cavern = &game_data.caverns[current_cavern];
-      println!("Current cavern is {:?}", current_cavern);
-      let border_color = cavern.border_color.ink_color();
-      clear_color.0 = border_color;
+    let current_cavern = cavern.cavern_number;
+    let cavern = &game_data.caverns[current_cavern];
+    println!("Current cavern is {:?}", current_cavern);
 
-      for y in 0..16 {
-          for x in 0..32 {
-              let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
-              if let Some(sprite_index) = sprite_index {
-                  commands.spawn((
-                      CavernTile,
-                      SpriteSheetBundle {
-                          texture_atlas: textures.clone(),
-                          sprite: TextureAtlasSprite {
-                              index: (current_cavern * 8) + sprite_index,
-                              anchor: Anchor::TopLeft,
-                              ..default() },
-                          transform: at_char_pos(Layer::Tiles,(x, y)),
-                          ..default()
-                      },
-                  ));
-              }
-          }
+    for y in 0..16 {
+      for x in 0..32 {
+        let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
+        if let Some(sprite_index) = sprite_index {
+          commands.spawn((
+            CavernTile,
+            SpriteSheetBundle {
+              texture_atlas: textures.clone(),
+              sprite: TextureAtlasSprite {
+                index: (current_cavern * 8) + sprite_index,
+                anchor: Anchor::TopLeft,
+                ..default()
+              },
+              transform: at_char_pos(Layer::Tiles, (x, y)),
+              ..default()
+            },
+          ));
+        }
       }
-
-      cavern_name_query.get_single_mut()?.value = cavern.name.to_owned();
-
+    }
   }
   Ok(())
 }
