@@ -1,10 +1,10 @@
 //! Implements the status area showing how many lives Willy has.
 
-use bevy::{prelude::*, ecs::query::Has, sprite::Anchor};
+use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
-  gamedata::GameDataResource, TIMER_TICK, position::{at_char_pos, Layer}, text::{Text, TextAttributes},
+  gamedata::GameDataResource, position::{at_char_pos, Layer}, text::{Text, TextAttributes},
 };
 
 static LIVES_TIMER_TICK: f32 = 0.3;
