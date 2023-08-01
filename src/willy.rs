@@ -31,10 +31,21 @@ enum Direction {
   Right,
 }
 
+/// Willy's airborne status.
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+
+enum AirborneStatus {
+  NotJumpingOrFalling,
+  Jumping,
+  FallingSafeToLand,
+  FallingUnsafeToLand,
+  Collided  // not sure if we need this
+}
+
 #[derive(Component, Debug)]
 struct WillyMotion {
   walking: bool,
-  jumping: bool,
+  airborne_status: AirborneStatus,
   direction: Direction,
 }
 
@@ -62,7 +73,7 @@ fn setup(
 
   let motion = WillyMotion {
     walking: false,
-    jumping: false,
+    airborne_status: AirborneStatus::NotJumpingOrFalling,
     direction: Direction::Right,
   };
 
@@ -100,7 +111,7 @@ fn move_willy(
   let (motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
 
   timer.tick(time.delta());
-  if timer.just_finished() && (motion.walking || motion.jumping) {
+  if timer.just_finished() && motion.walking {
     let cycle = sprites.current_frame == FRAME_COUNT - 1;
 
     sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
