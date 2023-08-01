@@ -94,7 +94,7 @@ fn move_willy(
       &mut Handle<Image>,
       &mut Transform,
     ),
-    Has<WillyMotion>,
+    With<WillyMotion>,
   >,
 ) {
   let (motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
