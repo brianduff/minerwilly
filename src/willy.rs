@@ -4,8 +4,10 @@ use crate::{
   color::{SpectrumColor, SpectrumColorName},
   gamedata::GameDataResource,
   position::{at_char_pos, Layer},
-  CELLSIZE, TIMER_TICK,
+  CELLSIZE, TIMER_TICK, SCALE,
 };
+
+static JUMP_DELTAS: [f32; 16] = [4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0, 1.0, -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -4.0, -4.0];
 
 pub struct WillyPlugin;
 
@@ -42,11 +44,19 @@ enum AirborneStatus {
   Collided  // not sure if we need this
 }
 
+fn is_airborne(status: &AirborneStatus) -> bool {
+  !matches!(status, AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided)
+}
+
 #[derive(Component, Debug)]
 struct WillyMotion {
   walking: bool,
   airborne_status: AirborneStatus,
   direction: Direction,
+  // This keeps track of where in a jump we are. It's
+  // initialized to 0 when jumping starts, and incremented
+  // on each timer tick as long as we're jumping.
+  jump_counter: u8,
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -75,6 +85,7 @@ fn setup(
     walking: false,
     airborne_status: AirborneStatus::NotJumpingOrFalling,
     direction: Direction::Right,
+    jump_counter: 0
   };
 
   // Spawn Willy
@@ -99,7 +110,7 @@ fn move_willy(
   time: Res<Time>,
   mut query: Query<
     (
-      &WillyMotion,
+      &mut WillyMotion,
       &mut AnimationTimer,
       &mut WillySprites,
       &mut Handle<Image>,
@@ -108,9 +119,29 @@ fn move_willy(
     With<WillyMotion>,
   >,
 ) {
-  let (motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
+  let (mut motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
 
   timer.tick(time.delta());
+
+// -8 -6 -4 -2 0 2 4 6 8
+
+  if timer.just_finished() {
+    // First, check if we're airborne. In this case, we move the y-coordinate of
+    // willy, and increment the jump animation counter.
+    if is_airborne(&motion.airborne_status) {
+      if motion.jump_counter <= 15 {
+        let delta = JUMP_DELTAS[motion.jump_counter as usize] * SCALE;
+        transform.translation.y += delta;
+      }
+      motion.jump_counter += 1;
+      if motion.jump_counter == 16 {
+        motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
+        motion.jump_counter = 0;
+      }
+    }
+  }
+
+
   if timer.just_finished() && motion.walking {
     let cycle = sprites.current_frame == FRAME_COUNT - 1;
 
@@ -143,18 +174,32 @@ fn check_keyboard(
 
   let old_direction = motion.direction;
 
-  motion.walking = false;
-  if !motion.walking && pressed(&keys, &RIGHT_KEYS) {
-    motion.walking = true;
-    motion.direction = Direction::Right;
-  } else if !motion.walking && pressed(&keys, &LEFT_KEYS) {
-    motion.walking = true;
-    motion.direction = Direction::Left;
+  let left_pressed = pressed(&keys, &LEFT_KEYS);
+  let right_pressed = pressed(&keys, &RIGHT_KEYS);
+  let jump_pressed = keys.just_pressed(KeyCode::Space);
+
+  if jump_pressed && !is_airborne(&motion.airborne_status) {
+    motion.airborne_status = AirborneStatus::Jumping;
+    motion.jump_counter = 0;
   }
 
-  if old_direction != motion.direction {
-    sprites.current_frame = 3 - sprites.current_frame;
+  // If we're airborne, we ignore the left and right buttons entirely.
+  if !is_airborne(&motion.airborne_status) {
+    motion.walking = false;
+    if !motion.walking && right_pressed {
+      motion.walking = true;
+      motion.direction = Direction::Right;
+    } else if !motion.walking && left_pressed {
+      motion.walking = true;
+      motion.direction = Direction::Left;
+    }
+
+    if old_direction != motion.direction {
+      sprites.current_frame = 3 - sprites.current_frame;
+    }
+
   }
+
 }
 
 fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
