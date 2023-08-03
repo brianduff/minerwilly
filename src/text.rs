@@ -15,7 +15,8 @@ pub struct Text {
   pub value: String,
   pub pos: (u8, u8),
   pub attributes: TextAttributes,
-  sprite_entity: Option<Entity>
+  sprite_entity: Option<Entity>,
+  layer: Layer
 }
 
 impl Text {
@@ -24,7 +25,18 @@ impl Text {
       value: value.to_owned(),
       pos,
       attributes: *attributes,
-      sprite_entity: None
+      sprite_entity: None,
+      layer: Layer::Tiles
+    }
+  }
+
+  pub fn new_with_layer(value: &str, pos: (u8, u8), attributes: &TextAttributes, layer: Layer) -> Self {
+    Text {
+      value: value.to_owned(),
+      pos,
+      attributes: *attributes,
+      sprite_entity: None,
+      layer
     }
   }
 }
@@ -53,11 +65,11 @@ fn create_text(charset: &Charset, text: &str, attributes: &TextAttributes) -> Im
   charset.to_image(&SpectrumColor::new(attributes.ink, attributes.paper, attributes.bright), text)
 }
 
-fn tile_sprite(texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
+fn tile_sprite(layer: Layer, texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
   SpriteBundle {
       sprite: new_top_left_sprite(),
       texture,
-      transform: at_char_pos(Layer::Tiles, pos),
+      transform: at_char_pos(layer, pos),
       ..default()
   }
 }
@@ -84,7 +96,7 @@ fn render_text(mut commands: Commands, charset: Res<CharsetResource>, mut images
     }
 
     let image_handle = images.add(create_text(&charset, &text.value, &text.attributes));
-    let id = commands.spawn(tile_sprite(image_handle, text.pos)).id();
+    let id = commands.spawn(tile_sprite(text.layer, image_handle, text.pos)).id();
     text.sprite_entity = Some(id);
   });
 }

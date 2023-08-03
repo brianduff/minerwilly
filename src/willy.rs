@@ -3,8 +3,8 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
   gamedata::{GameDataResource, cavern::CavernTileType},
-  position::{at_char_pos, Layer},
-  CELLSIZE, TIMER_TICK, SCALE, cavern::Cavern,
+  position::{at_char_pos, Layer, is_cell_aligned, to_cell},
+  CELLSIZE, TIMER_TICK, SCALE, cavern::Cavern, debug::DebugText,
 };
 
 static JUMP_DELTAS: [f32; 16] = [4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0, 1.0, -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -4.0, -4.0];
@@ -17,7 +17,8 @@ static FRAME_COUNT: usize = 4;
 impl Plugin for WillyPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (check_wall_collision, check_keyboard, move_willy).chain());
+    app.add_systems(Update, (check_wall_collision, check_keyboard, move_willy, check_landing).chain());
+    app.add_systems(Update, update_debug_info);
   }
 }
 
@@ -149,6 +150,12 @@ fn move_willy(
         let delta = JUMP_DELTAS[motion.jump_counter as usize] * SCALE;
         transform.translation.y += delta;
       }
+
+      if motion.jump_counter > 7 {
+        motion.airborne_status = AirborneStatus::FallingSafeToLand;
+        println!("Falling!");
+      }
+
       motion.jump_counter += 1;
       if motion.jump_counter == 16 {
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
@@ -269,4 +276,39 @@ fn check_wall_collision(data: Res<GameDataResource>, cavern: Res<Cavern>, mut qu
 
   }
 
+}
+
+// Check if willy has landed on something. Ideally a floor ;)
+fn check_landing(data: Res<GameDataResource>, cavern: Res<Cavern>,
+    mut query: Query<(&mut WillyMotion, &Transform), Has<WillyMotion>>) {
+  let (mut motion, transform) = query.get_single_mut().unwrap();
+  if motion.is_changed() && motion.airborne_status == AirborneStatus::FallingSafeToLand {
+    // Willy must be on a precise cell boundary to land.
+    let (cx, cy, pxo, pyo) = to_cell((transform.translation.x, transform.translation.y));
+    if pxo == 0. && pyo == 0. {
+      println!("Willy is cell aligned at {}, {} ({}, {})", cx, cy, transform.translation.x, transform.translation.y);
+      // Is the tile under willy's feet something he can stand on?
+      let cavern_data = &data.caverns[cavern.cavern_number];
+      println!("Checking if can land on tile at ({}, {})", cx, cy + 2);
+      if cavern_data.get_tile_type((cx, cy + 2)).can_land() {
+        motion.walking = false;
+        motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
+      }
+    }
+  }
+}
+
+fn update_debug_info(
+    mut debug_text: ResMut<DebugText>,
+    data: Res<GameDataResource>,
+    cavern: Res<Cavern>,
+    query: Query<(&WillyMotion, &Transform), With<WillyMotion>>) {
+  let (motion, transform) = query.get_single().unwrap();
+  let pos = (transform.translation.x / SCALE, transform.translation.y / SCALE);
+
+  let cavern = &data.caverns[cavern.cavern_number];
+  
+
+  debug_text.line1 = format!("Pos: {:?} {:?}", pos, motion.char_pos);
+  debug_text.line2 = format!("{:?}", motion.airborne_status);
 }

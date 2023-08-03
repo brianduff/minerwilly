@@ -12,6 +12,7 @@ pub struct Cavern {
 }
 
 /// There are eight types of cavern tiles.
+#[derive(Debug)]
 pub enum CavernTileType {
   Background = 0,
   Floor = 1,
@@ -39,7 +40,15 @@ impl From<usize> for CavernTileType {
     }
 }
 
+impl CavernTileType {
+  pub fn can_land(&self) -> bool {
+    println!("Can land on? {:?}", self);
+    matches!(self, &CavernTileType::Floor | &CavernTileType::CrumblingFloor | &CavernTileType::Conveyor | &CavernTileType::Wall)
+  }
+}
+
 impl Cavern {
+
 
   pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
     self.get_bg_sprite_index(pos).unwrap_or(0).into()

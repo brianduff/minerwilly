@@ -1,6 +1,7 @@
 use air::AirPlugin;
 use bevy::prelude::*;
 use cavern::CavernPlugin;
+use debug::DebugPlugin;
 use gamedata::GameDataPlugin;
 use anyhow::Result;
 use lives::LivesPlugin;
@@ -12,6 +13,7 @@ mod air;
 mod bitmap;
 mod cavern;
 mod color;
+mod debug;
 mod gamedata;
 mod lives;
 mod position;
@@ -53,7 +55,7 @@ fn main() -> Result<()>  {
         .add_plugins(DefaultPlugins.
             set(ImagePlugin::default_nearest())
             .set(WindowPlugin { primary_window: Some(window), ..default() })) // prevents blurry sprites
-        .add_plugins((GameDataPlugin, CavernPlugin, TextPlugin, ScorePlugin, AirPlugin, WillyPlugin, LivesPlugin))
+        .add_plugins((DebugPlugin, GameDataPlugin, CavernPlugin, TextPlugin, ScorePlugin, AirPlugin, WillyPlugin, LivesPlugin))
         .add_systems(PostStartup, setup)
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();

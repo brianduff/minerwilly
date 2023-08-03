@@ -23,11 +23,47 @@ pub fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
   (pos_x, pos_y)
 }
 
+/// Returns true if the given pixel coordinates are aligned to a cell
+/// boundary.
+pub fn is_cell_aligned(pos: (f32, f32)) -> bool {
+  let (_, _, offx, offy) = to_cell(pos);
+  offx == 0.0 && offy == 0.0
+}
+
+/// Given a pixel coordinate, return the equivalent character coordinate
+/// and the internal offset from that character coordinate within the
+/// cell. Note that the offset is scaled (multiplied by SCALE).
+pub fn to_cell((px, py): (f32, f32)) -> (u8, u8, f32, f32) {
+  // Make 0 <= adjy < 192 * SCALE
+  let adjy = -(py - (SCREEN_HEIGHT_PX / 2.));
+
+  // Make 0 <= cy < 24
+  let cy = (adjy / (8. * SCALE)) as u8;
+  // Get the offset 0.0 <= offy <= 8 * SCALE
+  let offy = adjy % (8. * SCALE);
+
+
+  // Make 0 <= adjx < 192 * SCALE
+  println!("X pixel pos = {}", px);
+  let adjx = px + (SCREEN_HEIGHT_PX / 2.);
+  println!("adjx = {} + {} = {}", px, (SCREEN_HEIGHT_PX / 2.), adjx);
+
+  // Make 0 <= cx < 24
+  let cx: u8 = (adjx / (8. * SCALE)) as u8;
+  println!("cx = {}", cx);
+  let offx = adjx % (8. * SCALE);
+
+  (cx, cy, offx, offy)
+}
+
 
 /// The layer that a sprite is rendered at. This is translated into its
 /// z-coordinate.
+#[derive(Debug, Clone, Copy)]
 pub enum Layer {
   //Background = 0,
   Tiles = 1,
-  Characters = 2
+  Characters = 2,
+  // For HUD etc.
+  Debug = 3,
 }
