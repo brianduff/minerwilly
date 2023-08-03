@@ -13,8 +13,8 @@ use bevy::{prelude::*, sprite::Anchor};
 pub struct CavernPlugin;
 
 #[derive(Resource, Debug)]
-struct Cavern {
-  cavern_number: usize,
+pub struct Cavern {
+  pub cavern_number: usize,
 }
 
 #[derive(Component, Debug)]
@@ -88,7 +88,7 @@ fn spawn_cavern(
 
     for y in 0..16 {
       for x in 0..32 {
-        let sprite_index = cavern.get_bg_sprite_index(x.into(), y.into());
+        let sprite_index = cavern.get_bg_sprite_index((x, y));
         if let Some(sprite_index) = sprite_index {
           let texture = &image_handles[sprite_index];
           commands.spawn((

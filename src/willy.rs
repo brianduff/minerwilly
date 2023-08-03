@@ -2,9 +2,9 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
-  gamedata::GameDataResource,
+  gamedata::{GameDataResource, cavern::CavernTileType},
   position::{at_char_pos, Layer},
-  CELLSIZE, TIMER_TICK, SCALE,
+  CELLSIZE, TIMER_TICK, SCALE, cavern::Cavern,
 };
 
 static JUMP_DELTAS: [f32; 16] = [4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0, 1.0, -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -4.0, -4.0];
@@ -17,7 +17,7 @@ static FRAME_COUNT: usize = 4;
 impl Plugin for WillyPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (move_willy, check_keyboard));
+    app.add_systems(Update, (check_wall_collision, check_keyboard, move_willy).chain());
   }
 }
 
@@ -48,6 +48,8 @@ fn is_airborne(status: &AirborneStatus) -> bool {
   !matches!(status, AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided)
 }
 
+// TODO: this could just be a resource rather than a component, since willy's
+// state is effectively global.
 #[derive(Component, Debug)]
 struct WillyMotion {
   walking: bool,
@@ -57,6 +59,18 @@ struct WillyMotion {
   // initialized to 0 when jumping starts, and incremented
   // on each timer tick as long as we're jumping.
   jump_counter: u8,
+
+  // Willy consists of two vertically stacked character cells.
+  // Here, we keep track of the character cell position of the upper
+  // of these two cells as Willy moves. This is used for major collision
+  // detection (e.g. walls). For nasties and items, we use pixel coordinates
+  // instead.
+  char_pos: (u8, u8),
+
+  // Collision detection will update these to indicate whether moving to the
+  // next cell is possible in the given direction.
+  can_move_left: bool,
+  can_move_right: bool
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -85,7 +99,10 @@ fn setup(
     walking: false,
     airborne_status: AirborneStatus::NotJumpingOrFalling,
     direction: Direction::Right,
-    jump_counter: 0
+    jump_counter: 0,
+    char_pos: (2, 13), // TODO: use the cavern data to spawn in the right place
+    can_move_left: true,
+    can_move_right: true
   };
 
   // Spawn Willy
@@ -99,6 +116,7 @@ fn setup(
         ..Default::default()
       },
       texture: initial_texture,
+      // TODO: use the cavern data to spawn in the right place
       transform: at_char_pos(Layer::Characters, (2, 13)),
       ..Default::default()
     },
@@ -122,8 +140,6 @@ fn move_willy(
   let (mut motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
 
   timer.tick(time.delta());
-
-// -8 -6 -4 -2 0 2 4 6 8
 
   if timer.just_finished() {
     // First, check if we're airborne. In this case, we move the y-coordinate of
@@ -158,11 +174,19 @@ fn move_willy(
 
     // If we've reached the bound of the current frame, then move to the next char pos
     if cycle {
-      transform.translation.x += match motion.direction {
-        Direction::Left => -CELLSIZE,
-        Direction::Right => CELLSIZE,
-      };
+      let (cx, cy) = motion.char_pos;
+      match motion.direction {
+        Direction::Left => {
+          transform.translation.x -= CELLSIZE;
+          motion.char_pos = (cx - 1, cy);
+        },
+        Direction::Right => {
+          transform.translation.x += CELLSIZE;
+          motion.char_pos = (cx + 1, cy);
+        }
+      }
     }
+
   }
 }
 
@@ -170,6 +194,7 @@ fn check_keyboard(
   keys: Res<Input<KeyCode>>,
   mut query: Query<(&mut WillyMotion, &mut WillySprites), Has<WillyMotion>>,
 ) {
+
   let (mut motion, mut sprites) = query.single_mut();
 
   let old_direction = motion.direction;
@@ -183,21 +208,28 @@ fn check_keyboard(
     motion.jump_counter = 0;
   }
 
-  // If we're airborne, we ignore the left and right buttons entirely.
   if !is_airborne(&motion.airborne_status) {
     motion.walking = false;
     if !motion.walking && right_pressed {
       motion.walking = true;
       motion.direction = Direction::Right;
-    } else if !motion.walking && left_pressed {
+    } else if !motion.walking && left_pressed{
       motion.walking = true;
       motion.direction = Direction::Left;
     }
+  }
 
-    if old_direction != motion.direction {
-      sprites.current_frame = 3 - sprites.current_frame;
-    }
+  // Whatever we're doing, we must stop moving horizontally if we hit a wall.
+  if motion.walking &&
+    (motion.direction == Direction::Right && !motion.can_move_right) |
+    (motion.direction == Direction::Left && !motion.can_move_left) {
+    motion.walking = false;
+  }
 
+
+
+  if old_direction != motion.direction {
+    sprites.current_frame = 3 - sprites.current_frame;
   }
 
 }
@@ -211,5 +243,30 @@ fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
   false
 }
 
+
 const LEFT_KEYS: [KeyCode; 2] = [KeyCode::Left, KeyCode::O];
 const RIGHT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::P];
+
+
+// Check to see if moving left or right would collide with a wall, and should
+// therefore be disallowed. This will update the can_move_left and can_move_right
+// fields of WillyMotion.
+fn check_wall_collision(data: Res<GameDataResource>, cavern: Res<Cavern>, mut query: Query<&mut WillyMotion>) {
+
+  let mut motion = query.get_single_mut().unwrap();
+
+  if motion.is_changed() {
+    let cavern_data = &data.caverns[cavern.cavern_number];
+
+    let (curx, cury) = motion.char_pos;
+
+    motion.can_move_left =
+      !matches!(cavern_data.get_tile_type((curx, cury)), CavernTileType::Wall) &&
+      !matches!(cavern_data.get_tile_type((curx, cury + 1)), CavernTileType::Wall);
+    motion.can_move_right =
+      !matches!(cavern_data.get_tile_type((curx + 1, cury)), CavernTileType::Wall) &&
+      !matches!(cavern_data.get_tile_type((curx + 1, cury + 1)), CavernTileType::Wall);
+
+  }
+
+}

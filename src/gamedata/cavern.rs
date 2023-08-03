@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{color::SpectrumColor, bitmap::Bitmap};
+use crate::{bitmap::Bitmap, color::SpectrumColor};
 
 // A cavern
 #[derive(Debug)]
@@ -11,8 +11,41 @@ pub struct Cavern {
   pub border_color: SpectrumColor,
 }
 
+/// There are eight types of cavern tiles.
+pub enum CavernTileType {
+  Background = 0,
+  Floor = 1,
+  CrumblingFloor = 2,
+  Wall = 3,
+  Conveyor = 4,
+  Nasty1 = 5,
+  Nasty2 = 6,
+  Extra = 7,
+}
+
+impl From<usize> for CavernTileType {
+    fn from(value: usize) -> Self {
+        match value {
+          0 => CavernTileType::Background,
+          1 => CavernTileType::Floor,
+          2 => CavernTileType::CrumblingFloor,
+          3 => CavernTileType::Wall,
+          4 => CavernTileType::Conveyor,
+          5 => CavernTileType::Nasty1,
+          6 => CavernTileType::Nasty2,
+          7 => CavernTileType::Extra,
+          _ => CavernTileType::Background
+        }
+    }
+}
+
 impl Cavern {
-  pub fn get_bg_sprite_index(&self, char_x: usize, char_y: usize) -> Option<usize> {
+
+  pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
+    self.get_bg_sprite_index(pos).unwrap_or(0).into()
+  }
+
+  pub fn get_bg_sprite_index(&self, (char_x, char_y): (u8, u8)) -> Option<usize> {
     let color = self.layout.get_cell_color(char_x, char_y);
 
     for (i, s) in self.tile_bitmaps.iter().enumerate() {
@@ -70,8 +103,8 @@ pub struct Layout {
 }
 
 impl Layout {
-  fn get_cell_color(&self, char_x: usize, char_y: usize) -> &SpectrumColor {
-    &self.cells[(char_y * 32) + char_x]
+  fn get_cell_color(&self, char_x: u8, char_y: u8) -> &SpectrumColor {
+    &self.cells[(char_y as usize * 32) + char_x as usize]
   }
 }
 

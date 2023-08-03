@@ -2,7 +2,7 @@
 //! on a manic binary z80 binary, and extracts the data directly from that.
 
 mod data;
-mod cavern;
+pub mod cavern;
 
 use anyhow::Result;
 use bevy::prelude::*;
