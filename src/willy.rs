@@ -3,7 +3,7 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
   gamedata::{GameDataResource, cavern::CavernTileType},
-  position::{at_char_pos, Layer, is_cell_aligned, to_cell},
+  position::{Direction, at_char_pos, Layer, is_cell_aligned, to_cell, ActorPosition},
   CELLSIZE, TIMER_TICK, SCALE, cavern::Cavern, debug::DebugText,
 };
 
@@ -28,11 +28,6 @@ struct WillySprites {
   current_frame: usize,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-enum Direction {
-  Left,
-  Right,
-}
 
 /// Willy's airborne status.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -106,9 +101,13 @@ fn setup(
     can_move_right: true
   };
 
+  let willy_pos = ActorPosition::at_char_pos((2, 13));
+  let transform: Transform = (&willy_pos).into();
+
   // Spawn Willy
   commands.spawn((
     motion,
+    willy_pos,
     sprite_images,
     AnimationTimer(Timer::from_seconds(TIMER_TICK, TimerMode::Repeating)),
     SpriteBundle {
@@ -118,7 +117,7 @@ fn setup(
       },
       texture: initial_texture,
       // TODO: use the cavern data to spawn in the right place
-      transform: at_char_pos(Layer::Characters, (2, 13)),
+      transform,
       ..Default::default()
     },
   ));
@@ -307,7 +306,7 @@ fn update_debug_info(
   let pos = (transform.translation.x / SCALE, transform.translation.y / SCALE);
 
   let cavern = &data.caverns[cavern.cavern_number];
-  
+
 
   debug_text.line1 = format!("Pos: {:?} {:?}", pos, motion.char_pos);
   debug_text.line2 = format!("{:?}", motion.airborne_status);
