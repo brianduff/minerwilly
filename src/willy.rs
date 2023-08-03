@@ -3,8 +3,8 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
   gamedata::{GameDataResource, cavern::CavernTileType},
-  position::{Direction, at_char_pos, Layer, is_cell_aligned, to_cell, ActorPosition},
-  CELLSIZE, TIMER_TICK, SCALE, cavern::Cavern, debug::DebugText,
+  position::{Direction, to_cell, ActorPosition},
+  TIMER_TICK, cavern::Cavern, debug::DebugText,
 };
 
 static JUMP_DELTAS: [f32; 16] = [4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 1.0, 1.0, -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -4.0, -4.0];
@@ -61,7 +61,7 @@ struct WillyMotion {
   // of these two cells as Willy moves. This is used for major collision
   // detection (e.g. walls). For nasties and items, we use pixel coordinates
   // instead.
-  char_pos: (u8, u8),
+//  char_pos: (u8, u8),
 
   // Collision detection will update these to indicate whether moving to the
   // next cell is possible in the given direction.
@@ -96,7 +96,7 @@ fn setup(
     airborne_status: AirborneStatus::NotJumpingOrFalling,
     direction: Direction::Right,
     jump_counter: 0,
-    char_pos: (2, 13), // TODO: use the cavern data to spawn in the right place
+//    char_pos: (2, 13), // TODO: use the cavern data to spawn in the right place
     can_move_left: true,
     can_move_right: true
   };
@@ -128,6 +128,7 @@ fn move_willy(
   time: Res<Time>,
   mut query: Query<
     (
+      &mut ActorPosition,
       &mut WillyMotion,
       &mut AnimationTimer,
       &mut WillySprites,
@@ -137,7 +138,7 @@ fn move_willy(
     With<WillyMotion>,
   >,
 ) {
-  let (mut motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
+  let (mut position, mut motion, mut timer, mut sprites, mut image, mut transform) = query.single_mut();
 
   timer.tick(time.delta());
 
@@ -146,8 +147,8 @@ fn move_willy(
     // willy, and increment the jump animation counter.
     if is_airborne(&motion.airborne_status) {
       if motion.jump_counter <= 15 {
-        let delta = JUMP_DELTAS[motion.jump_counter as usize] * SCALE;
-        transform.translation.y += delta;
+        let delta = JUMP_DELTAS[motion.jump_counter as usize];
+        position.jump(delta);
       }
 
       if motion.jump_counter > 7 {
@@ -161,39 +162,29 @@ fn move_willy(
         motion.jump_counter = 0;
       }
     }
-  }
 
+    if motion.walking {
+      let cycle = sprites.current_frame == FRAME_COUNT - 1;
 
-  if timer.just_finished() && motion.walking {
-    let cycle = sprites.current_frame == FRAME_COUNT - 1;
+      sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
 
-    sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
+      // Compute the texture index 0-7 of the current animation frame.
+      let texture_index = match motion.direction {
+        Direction::Right => sprites.current_frame,
+        Direction::Left => 4 + (3 - sprites.current_frame),
+      };
 
-    // Compute the texture index 0-7 of the current animation frame.
-    let texture_index = match motion.direction {
-      Direction::Right => sprites.current_frame,
-      Direction::Left => 4 + (3 - sprites.current_frame),
-    };
+      // Update the image we're using for the sprite
+      *image = sprites.images[texture_index].clone();
 
-    // Update the image we're using for the sprite
-    *image = sprites.images[texture_index].clone();
-
-    // If we've reached the bound of the current frame, then move to the next char pos
-    if cycle {
-      let (cx, cy) = motion.char_pos;
-      match motion.direction {
-        Direction::Left => {
-          transform.translation.x -= CELLSIZE;
-          motion.char_pos = (cx - 1, cy);
-        },
-        Direction::Right => {
-          transform.translation.x += CELLSIZE;
-          motion.char_pos = (cx + 1, cy);
-        }
-      }
+      position.step(motion.direction);
     }
 
+    *transform = (&*position).into();
+
   }
+
+
 }
 
 fn check_keyboard(
@@ -257,14 +248,14 @@ const RIGHT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::P];
 // Check to see if moving left or right would collide with a wall, and should
 // therefore be disallowed. This will update the can_move_left and can_move_right
 // fields of WillyMotion.
-fn check_wall_collision(data: Res<GameDataResource>, cavern: Res<Cavern>, mut query: Query<&mut WillyMotion>) {
+fn check_wall_collision(data: Res<GameDataResource>, cavern: Res<Cavern>, mut query: Query<(&mut ActorPosition, &mut WillyMotion), With<WillyMotion>>) {
 
-  let mut motion = query.get_single_mut().unwrap();
+  let (mut position, mut motion) = query.get_single_mut().unwrap();
 
   if motion.is_changed() {
     let cavern_data = &data.caverns[cavern.cavern_number];
 
-    let (curx, cury) = motion.char_pos;
+    let (curx, cury) = position.char_pos();
 
     motion.can_move_left =
       !matches!(cavern_data.get_tile_type((curx, cury)), CavernTileType::Wall) &&
@@ -301,13 +292,13 @@ fn update_debug_info(
     mut debug_text: ResMut<DebugText>,
     data: Res<GameDataResource>,
     cavern: Res<Cavern>,
-    query: Query<(&WillyMotion, &Transform), With<WillyMotion>>) {
-  let (motion, transform) = query.get_single().unwrap();
-  let pos = (transform.translation.x / SCALE, transform.translation.y / SCALE);
+    query: Query<(&WillyMotion, &Transform, &ActorPosition), With<WillyMotion>>) {
+  let (motion, transform, position) = query.get_single().unwrap();
+//  let pos = (transform.translation.x / SCALE, transform.translation.y / SCALE);
 
   let cavern = &data.caverns[cavern.cavern_number];
 
 
-  debug_text.line1 = format!("Pos: {:?} {:?}", pos, motion.char_pos);
+  debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
   debug_text.line2 = format!("{:?}", motion.airborne_status);
 }

@@ -114,7 +114,13 @@ impl ActorPosition {
     self.zx_pixel_pos = (x + match direction {
       Direction::Left => -2.,
       Direction::Right => 2.
-    }, y)
+    }, y);
+  }
+
+  // Jump (or fall if distance is negative) the given distance in pixels.
+  pub fn jump(&mut self, distance: f32) {
+    let (x, y) = self.zx_pixel_pos;
+    self.zx_pixel_pos = (x, y - distance);
   }
 
   /// Return this position as a scaled bevy coordinate system pixel
