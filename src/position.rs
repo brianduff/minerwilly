@@ -27,13 +27,6 @@ pub fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
   (pos_x, pos_y)
 }
 
-/// Returns true if the given pixel coordinates are aligned to a cell
-/// boundary.
-pub fn is_cell_aligned(pos: (f32, f32)) -> bool {
-  let (_, _, offx, offy) = to_cell(pos);
-  offx == 0.0 && offy == 0.0
-}
-
 /// Given a pixel coordinate, return the equivalent character coordinate
 /// and the internal offset from that character coordinate within the
 /// cell. Note that the offset is scaled (multiplied by SCALE).
@@ -104,6 +97,12 @@ impl ActorPosition {
       layer: Layer::Characters,
       zx_pixel_pos
     }
+  }
+
+  /// Returns true if Willy's head is aligned with the top left of a character
+  /// cell boundary (basically, when his y coordinate is divisible by 8)
+  pub fn is_vertically_cell_aligned(&self) -> bool {
+    self.zx_pixel_pos.1 % 8. == 0.
   }
 
   // Take a single step in the given direction. This moves the

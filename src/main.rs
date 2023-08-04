@@ -22,7 +22,7 @@ mod text;
 mod willy;
 
 pub static SCALE: f32 = 2.0;
-static CELLSIZE: f32 = 8.0 * SCALE;
+//static CELLSIZE: f32 = 8.0 * SCALE;
 static TIMER_TICK: f32 = 0.075;
 // slow mo static TIMER_TICK: f32 = 0.25;
 static BORDER_WIDTH_CHARS: f32 = 4.;

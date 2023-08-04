@@ -156,11 +156,12 @@ fn move_willy(
         println!("Falling!");
       }
 
-      motion.jump_counter += 1;
-      if motion.jump_counter == 16 {
-        motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
-        motion.jump_counter = 0;
+      // In free fall!
+      if motion.jump_counter > 15 {
+        position.jump(-4.0);
       }
+
+      motion.jump_counter += 1;
     }
 
     if motion.walking {
@@ -270,16 +271,15 @@ fn check_wall_collision(data: Res<GameDataResource>, cavern: Res<Cavern>, mut qu
 
 // Check if willy has landed on something. Ideally a floor ;)
 fn check_landing(data: Res<GameDataResource>, cavern: Res<Cavern>,
-    mut query: Query<(&mut WillyMotion, &Transform), Has<WillyMotion>>) {
-  let (mut motion, transform) = query.get_single_mut().unwrap();
+    mut query: Query<(&mut WillyMotion, &ActorPosition), Has<WillyMotion>>) {
+  let (mut motion, position) = query.get_single_mut().unwrap();
   if motion.is_changed() && motion.airborne_status == AirborneStatus::FallingSafeToLand {
     // Willy must be on a precise cell boundary to land.
-    let (cx, cy, pxo, pyo) = to_cell((transform.translation.x, transform.translation.y));
-    if pxo == 0. && pyo == 0. {
-      println!("Willy is cell aligned at {}, {} ({}, {})", cx, cy, transform.translation.x, transform.translation.y);
+    // let (cx, cy, pxo, pyo) = to_cell((transform.translation.x, transform.translation.y));
+    if position.is_vertically_cell_aligned() {
+      let (cx, cy) = position.char_pos();
       // Is the tile under willy's feet something he can stand on?
       let cavern_data = &data.caverns[cavern.cavern_number];
-      println!("Checking if can land on tile at ({}, {})", cx, cy + 2);
       if cavern_data.get_tile_type((cx, cy + 2)).can_land() {
         motion.walking = false;
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
@@ -292,9 +292,8 @@ fn update_debug_info(
     mut debug_text: ResMut<DebugText>,
     data: Res<GameDataResource>,
     cavern: Res<Cavern>,
-    query: Query<(&WillyMotion, &Transform, &ActorPosition), With<WillyMotion>>) {
-  let (motion, transform, position) = query.get_single().unwrap();
-//  let pos = (transform.translation.x / SCALE, transform.translation.y / SCALE);
+    query: Query<(&WillyMotion, &ActorPosition), With<WillyMotion>>) {
+  let (motion, position) = query.get_single().unwrap();
 
   let cavern = &data.caverns[cavern.cavern_number];
 
