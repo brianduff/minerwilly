@@ -42,7 +42,6 @@ impl From<usize> for CavernTileType {
 
 impl CavernTileType {
   pub fn can_land(&self) -> bool {
-    println!("Can land on? {:?}", self);
     matches!(self, &CavernTileType::Floor | &CavernTileType::CrumblingFloor | &CavernTileType::Conveyor | &CavernTileType::Wall)
   }
 }

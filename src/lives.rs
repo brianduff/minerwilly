@@ -4,7 +4,7 @@ use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{
   color::{SpectrumColor, SpectrumColorName},
-  gamedata::GameDataResource, position::{at_char_pos, Layer}, text::{Text, TextAttributes},
+  gamedata::GameDataResource, position::{Layer, Position}, text::{Text, TextAttributes},
 };
 
 static LIVES_TIMER_TICK: f32 = 0.3;
@@ -99,7 +99,7 @@ fn update_life_sprites(mut commands: Commands, time: Res<Time>, textures: Res<Te
               ..Default::default()
             },
             texture: texture.clone(),
-            transform: at_char_pos(Layer::Characters, (i * 2, 21)),
+            transform: Position::at_char_pos(Layer::Characters, (i * 2, 21)).into(),
             ..Default::default()
           }
         ));

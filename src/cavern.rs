@@ -1,9 +1,8 @@
 use crate::color::SpectrumColorName;
-use crate::position::Layer;
+use crate::position::{Layer, Position};
 use crate::{
   gamedata::GameDataResource,
   handle_errors,
-  position::at_char_pos,
   text::{Text, TextAttributes},
 };
 use anyhow::Result;
@@ -99,7 +98,7 @@ fn spawn_cavern(
                 anchor: Anchor::TopLeft,
                 ..default()
               },
-              transform: at_char_pos(Layer::Tiles, (x, y)),
+              transform: Position::at_char_pos(Layer::Tiles, (x, y)).into(),
               ..default()
             },
           ));

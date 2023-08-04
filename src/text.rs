@@ -4,11 +4,11 @@ use bevy::{
   sprite::Anchor,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use crate::{color::{SpectrumColor, SpectrumColorName}, position::Layer};
+use crate::{color::{SpectrumColor, SpectrumColorName}, position::{Layer, Position}};
 use std::io::Read;
 use std::{fs::File, path::Path};
 
-use crate::{handle_errors, position::at_char_pos};
+use crate::handle_errors;
 
 #[derive(Component, Debug)]
 pub struct Text {
@@ -69,7 +69,7 @@ fn tile_sprite(layer: Layer, texture: Handle<Image>, pos: (u8, u8)) -> SpriteBun
   SpriteBundle {
       sprite: new_top_left_sprite(),
       texture,
-      transform: at_char_pos(layer, pos),
+      transform: Position::at_char_pos(layer, pos).into(),
       ..default()
   }
 }

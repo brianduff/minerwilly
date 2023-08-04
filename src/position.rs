@@ -1,56 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{SCALE, SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX};
+use crate::SCALE;
 
-pub fn new_transform() -> Transform {
+fn new_transform() -> Transform {
   Transform::from_scale(Vec3::splat(SCALE))
 }
 
-pub fn at_char_pos(layer: Layer, pos: (u8, u8)) -> Transform {
-  let (screen_x, screen_y) = char_pos_to_screen(pos);
-  let z = (layer as u32) as f32;
-  new_transform().with_translation(Vec3 {
-    x: screen_x,
-    y: screen_y,
-    z,
-  })
-}
-
-// Converts a character position on screen to the top left screen
-// coordinate that contains that character.
-pub fn char_pos_to_screen((x, y): (u8, u8)) -> (f32, f32) {
-  let x: f32 = x.into();
-  let y: f32 = y.into();
-  let pos_x = 0.0 - (SCREEN_WIDTH_PX / 2.) + (8. * x * SCALE);
-  let pos_y = 0.0 + (SCREEN_HEIGHT_PX / 2.) - (8. * y * SCALE);
-
-  (pos_x, pos_y)
-}
-
-/// Given a pixel coordinate, return the equivalent character coordinate
-/// and the internal offset from that character coordinate within the
-/// cell. Note that the offset is scaled (multiplied by SCALE).
-pub fn to_cell((px, py): (f32, f32)) -> (u8, u8, f32, f32) {
-  // Make 0 <= adjy < 192 * SCALE
-  let adjy = -(py - (SCREEN_HEIGHT_PX / 2.));
-
-  // Make 0 <= cy < 24
-  let cy = (adjy / (8. * SCALE)) as u8;
-  // Get the offset 0.0 <= offy <= 8 * SCALE
-  let offy = adjy % (8. * SCALE);
-
-  // Make 0 <= adjx < 192 * SCALE
-  println!("X pixel pos = {}", px);
-  let adjx = px + (SCREEN_HEIGHT_PX / 2.);
-  println!("adjx = {} + {} = {}", px, (SCREEN_HEIGHT_PX / 2.), adjx);
-
-  // Make 0 <= cx < 24
-  let cx: u8 = (adjx / (8. * SCALE)) as u8;
-  println!("cx = {}", cx);
-  let offx = adjx % (8. * SCALE);
-
-  (cx, cy, offx, offy)
-}
 
 /// The layer that a sprite is rendered at. This is translated into its
 /// z-coordinate.
@@ -63,7 +18,7 @@ pub enum Layer {
   Debug = 3,
 }
 
-/// The position of an actor: either Willy or a Guardian.
+/// Represents a position on screen.
 /// We provide access to both a character position and an absolute
 /// pixel x, y position (unscaled, and in a simplified version of
 /// the ZX Spectrum's coordinate system, where x ranges from 0-255 and
@@ -74,7 +29,7 @@ pub enum Layer {
 /// The most common way to convert to bevy's coordinate system (and
 /// apply scaling etc) is to convert the position into a Transform.
 #[derive(Component, Debug)]
-pub struct ActorPosition {
+pub struct Position {
   layer: Layer,
   // The canonical position is the zx spectrum pixel pos, which can
   // always be snapped to the character cell that it lies within.
@@ -87,15 +42,14 @@ pub enum Direction {
   Right,
 }
 
-
-impl ActorPosition {
+impl Position {
   /// Creates a new position at the top let of the given char pos.
-  pub fn at_char_pos((x, y): (u8, u8)) -> Self {
+  pub fn at_char_pos(layer: Layer, (x, y): (u8, u8)) -> Self {
     let zx_pixel_pos = (x as f32 * 8.0, y as f32 * 8.0);
 
-    ActorPosition {
-      layer: Layer::Characters,
-      zx_pixel_pos
+    Position {
+      layer,
+      zx_pixel_pos,
     }
   }
 
@@ -110,10 +64,13 @@ impl ActorPosition {
   // willy or a guardian's sprite moves by 2 pixels)
   pub fn step(&mut self, direction: Direction) {
     let (x, y) = self.zx_pixel_pos;
-    self.zx_pixel_pos = (x + match direction {
-      Direction::Left => -2.,
-      Direction::Right => 2.
-    }, y);
+    self.zx_pixel_pos = (
+      x + match direction {
+        Direction::Left => -2.,
+        Direction::Right => 2.,
+      },
+      y,
+    );
   }
 
   // Jump (or fall if distance is negative) the given distance in pixels.
@@ -145,8 +102,8 @@ impl ActorPosition {
 /// coordinate of this transform *does not* match the value returned
 /// by pixel_pos, because sprites stay in the same cell until they
 /// reach the end of their 4 movement sprite animations.
-impl From<&ActorPosition> for Transform {
-  fn from(value: &ActorPosition) -> Self {
+impl From<&Position> for Transform {
+  fn from(value: &Position) -> Self {
     let (_, y) = value.pixel_pos();
     let z = (value.layer as u32) as f32;
 
@@ -155,5 +112,11 @@ impl From<&ActorPosition> for Transform {
     let x = SCALE * (char_x as f32 * 8. - 128.);
 
     new_transform().with_translation(Vec3 { x, y, z })
+  }
+}
+
+impl From<Position> for Transform {
+  fn from(value: Position) -> Self {
+    (&value).into()
   }
 }
