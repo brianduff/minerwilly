@@ -4,11 +4,12 @@ use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{
   color::{Attributes, ColorName},
-  gamedata::GameDataResource, position::{Layer, Position}, text::{Text, TextAttributes},
+  gamedata::GameDataResource,
+  position::{Layer, Position},
+  text::{Text, TextAttributes},
 };
 
 static LIVES_TIMER_TICK: f32 = 0.3;
-
 
 pub struct LivesPlugin;
 
@@ -16,12 +17,11 @@ pub struct LivesPlugin;
 pub struct Lives {
   pub lives_remaining: u8,
   current_animation_frame: u8,
-  animation_timer: Timer
+  animation_timer: Timer,
 }
 
 #[derive(Resource, Deref)]
 struct Textures(Vec<Handle<Image>>);
-
 
 #[derive(Component)]
 struct LifeSprite;
@@ -41,7 +41,7 @@ fn setup(
   commands.insert_resource(Lives {
     lives_remaining: 3,
     current_animation_frame: 0,
-    animation_timer: Timer::from_seconds(LIVES_TIMER_TICK, TimerMode::Repeating)
+    animation_timer: Timer::from_seconds(LIVES_TIMER_TICK, TimerMode::Repeating),
   });
 
   // Get the animation images for the lives sprites
@@ -60,16 +60,23 @@ fn setup(
   let bg_color = TextAttributes::new(ColorName::Black, ColorName::Black);
 
   for y in 20..24 {
-    commands.spawn(Text::new("                                ", (0, y), &bg_color));
+    commands.spawn(Text::new(
+      "                                ",
+      (0, y),
+      &bg_color,
+    ));
   }
 }
 
-fn update_life_sprites(mut commands: Commands, time: Res<Time>, textures: Res<Textures>,
-    mut lives: ResMut<Lives>, mut query: Query<(Entity, &mut Handle<Image>), With<LifeSprite>>) {
-
+fn update_life_sprites(
+  mut commands: Commands,
+  time: Res<Time>,
+  textures: Res<Textures>,
+  mut lives: ResMut<Lives>,
+  mut query: Query<(Entity, &mut Handle<Image>), With<LifeSprite>>,
+) {
   lives.animation_timer.tick(time.delta());
   if lives.animation_timer.just_finished() {
-
     // Find the right texture for the current animation frame.
     let texture = &textures[lives.current_animation_frame as usize];
 
@@ -87,7 +94,6 @@ fn update_life_sprites(mut commands: Commands, time: Res<Time>, textures: Res<Te
       }
     });
 
-
     // Are we missing sprites?
     if count < lives.lives_remaining - 1 {
       for i in count..lives.lives_remaining - 1 {
@@ -101,11 +107,10 @@ fn update_life_sprites(mut commands: Commands, time: Res<Time>, textures: Res<Te
             texture: texture.clone(),
             transform: Position::at_char_pos(Layer::Characters, (i * 2, 21)).into(),
             ..Default::default()
-          }
+          },
         ));
       }
     }
-
 
     lives.current_animation_frame += 1;
     if lives.current_animation_frame == 4 {
@@ -113,4 +118,3 @@ fn update_life_sprites(mut commands: Commands, time: Res<Time>, textures: Res<Te
     }
   }
 }
-

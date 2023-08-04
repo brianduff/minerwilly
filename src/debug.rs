@@ -16,7 +16,7 @@ pub struct DebugPlugin;
 pub struct DebugText {
   pub line1: String,
   pub line2: String,
-  pub line3: String
+  pub line3: String,
 }
 
 impl DebugText {
@@ -25,7 +25,7 @@ impl DebugText {
       0 => &self.line1,
       1 => &self.line2,
       2 => &self.line3,
-      _ => ""
+      _ => "",
     }
   }
 }
@@ -46,7 +46,7 @@ fn init(mut commands: Commands) {
   commands.insert_resource(DebugText {
     line1: " ".to_owned(),
     line2: " ".to_owned(),
-    line3: " ".to_owned()
+    line3: " ".to_owned(),
   });
 
   commands.spawn((
@@ -63,9 +63,10 @@ fn init(mut commands: Commands) {
   ));
 }
 
-fn update(debug_text: Res<DebugText>,
-    mut query: Query<(&mut Text, &mut DebugDisplayText), With<DebugDisplayText>>) {
-
+fn update(
+  debug_text: Res<DebugText>,
+  mut query: Query<(&mut Text, &mut DebugDisplayText), With<DebugDisplayText>>,
+) {
   if debug_text.is_changed() {
     for (mut text, display) in query.iter_mut() {
       text.value = debug_text.get(**display).to_owned()

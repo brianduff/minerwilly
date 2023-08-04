@@ -27,7 +27,12 @@ impl Plugin for CavernPlugin {
     app.add_systems(Startup, setup);
     app.add_systems(
       Update,
-      (update_border, update_cavern_name, spawn_cavern.pipe(handle_errors), check_debug_keyboard),
+      (
+        update_border,
+        update_cavern_name,
+        spawn_cavern.pipe(handle_errors),
+        check_debug_keyboard,
+      ),
     );
   }
 }
@@ -46,7 +51,11 @@ fn setup(mut commands: Commands) {
   ));
 }
 
-fn update_border(game_data: Res<GameDataResource>, cavern: Res<Cavern>, mut clear_color: ResMut<ClearColor>) {
+fn update_border(
+  game_data: Res<GameDataResource>,
+  cavern: Res<Cavern>,
+  mut clear_color: ResMut<ClearColor>,
+) {
   if cavern.is_changed() {
     let cavern = &game_data.caverns[cavern.cavern_number];
     let border_color = cavern.border_color.ink_color();
@@ -54,7 +63,11 @@ fn update_border(game_data: Res<GameDataResource>, cavern: Res<Cavern>, mut clea
   }
 }
 
-fn update_cavern_name(game_data: Res<GameDataResource>, cavern: Res<Cavern>, mut query: Query<&mut Text, With<CavernName>>) {
+fn update_cavern_name(
+  game_data: Res<GameDataResource>,
+  cavern: Res<Cavern>,
+  mut query: Query<&mut Text, With<CavernName>>,
+) {
   if cavern.is_changed() {
     let name = &game_data.caverns[cavern.cavern_number].name;
     query.get_single_mut().unwrap().value = name.to_owned();

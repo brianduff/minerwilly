@@ -1,10 +1,13 @@
+use crate::{
+  color::{Attributes, ColorName},
+  position::{Layer, Position},
+};
 use anyhow::Result;
 use bevy::{
   prelude::*,
-  sprite::Anchor,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+  sprite::Anchor,
 };
-use crate::{color::{Attributes, ColorName}, position::{Layer, Position}};
 use std::io::Read;
 use std::{fs::File, path::Path};
 
@@ -16,7 +19,7 @@ pub struct Text {
   pub pos: (u8, u8),
   pub attributes: TextAttributes,
   sprite_entity: Option<Entity>,
-  layer: Layer
+  layer: Layer,
 }
 
 impl Text {
@@ -26,17 +29,22 @@ impl Text {
       pos,
       attributes: *attributes,
       sprite_entity: None,
-      layer: Layer::Tiles
+      layer: Layer::Tiles,
     }
   }
 
-  pub fn new_with_layer(value: &str, pos: (u8, u8), attributes: &TextAttributes, layer: Layer) -> Self {
+  pub fn new_with_layer(
+    value: &str,
+    pos: (u8, u8),
+    attributes: &TextAttributes,
+    layer: Layer,
+  ) -> Self {
     Text {
       value: value.to_owned(),
       pos,
       attributes: *attributes,
       sprite_entity: None,
-      layer
+      layer,
     }
   }
 }
@@ -48,34 +56,48 @@ struct CharsetResource(Charset);
 pub struct TextAttributes {
   ink: ColorName,
   paper: ColorName,
-  bright: bool
+  bright: bool,
 }
 
 impl TextAttributes {
   pub fn new(ink: ColorName, paper: ColorName) -> Self {
-    Self { ink, paper, bright: false }
+    Self {
+      ink,
+      paper,
+      bright: false,
+    }
   }
 
   pub fn new_bright(ink: ColorName, paper: ColorName) -> Self {
-    Self { ink, paper, bright: true }
+    Self {
+      ink,
+      paper,
+      bright: true,
+    }
   }
 }
 
 fn create_text(charset: &Charset, text: &str, attributes: &TextAttributes) -> Image {
-  charset.to_image(&Attributes::new(attributes.ink, attributes.paper, attributes.bright), text)
+  charset.to_image(
+    &Attributes::new(attributes.ink, attributes.paper, attributes.bright),
+    text,
+  )
 }
 
 fn tile_sprite(layer: Layer, texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
   SpriteBundle {
-      sprite: new_top_left_sprite(),
-      texture,
-      transform: Position::at_char_pos(layer, pos).into(),
-      ..default()
+    sprite: new_top_left_sprite(),
+    texture,
+    transform: Position::at_char_pos(layer, pos).into(),
+    ..default()
   }
 }
 
 fn new_top_left_sprite() -> Sprite {
-  Sprite { anchor: Anchor::TopLeft, ..default() }
+  Sprite {
+    anchor: Anchor::TopLeft,
+    ..default()
+  }
 }
 
 pub struct TextPlugin;
@@ -87,7 +109,12 @@ impl Plugin for TextPlugin {
   }
 }
 
-fn render_text(mut commands: Commands, charset: Res<CharsetResource>, mut images: ResMut<Assets<Image>>, mut query: Query<&mut Text, Changed<Text>>) {
+fn render_text(
+  mut commands: Commands,
+  charset: Res<CharsetResource>,
+  mut images: ResMut<Assets<Image>>,
+  mut query: Query<&mut Text, Changed<Text>>,
+) {
   query.for_each_mut(|mut text| {
     // Despawn any previous instance of the text.
     if let Some(entity) = text.sprite_entity {
@@ -96,7 +123,9 @@ fn render_text(mut commands: Commands, charset: Res<CharsetResource>, mut images
     }
 
     let image_handle = images.add(create_text(&charset, &text.value, &text.attributes));
-    let id = commands.spawn(tile_sprite(text.layer, image_handle, text.pos)).id();
+    let id = commands
+      .spawn(tile_sprite(text.layer, image_handle, text.pos))
+      .id();
     text.sprite_entity = Some(id);
   });
 }

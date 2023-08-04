@@ -39,7 +39,7 @@ impl Bitmap {
       width,
       height,
       color: Some(color),
-      data: data[1..].to_vec()
+      data: data[1..].to_vec(),
     }
   }
 
@@ -77,7 +77,6 @@ impl Bitmap {
     )
   }
 }
-
 
 /// Given a byte of bitmap information and an ink and paper color in rgba,
 /// extend the given rgba vec to include the rgba pixel data for this byte.

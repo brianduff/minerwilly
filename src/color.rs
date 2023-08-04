@@ -14,7 +14,7 @@ pub struct Attributes {
   // The transparent paper flag. This indicates to the rendering
   // system that the paper should be rendered as a transparent
   // pixel.
-  pub transparent_background: bool
+  pub transparent_background: bool,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -60,7 +60,7 @@ impl Attributes {
       ink: ink.into(),
       paper: ColorName::Black.into(),
       bright,
-      transparent_background: true
+      transparent_background: true,
     }
   }
 
@@ -108,8 +108,6 @@ impl Attributes {
   pub fn paper_color(&self) -> Color {
     convert_color(&self.paper_rgba())
   }
-
-
 }
 
 fn convert_color(rgba: &[u8]) -> Color {
@@ -117,7 +115,8 @@ fn convert_color(rgba: &[u8]) -> Color {
     red: rgba[0] as f32 / 255.,
     green: rgba[1] as f32 / 255.,
     blue: rgba[2] as f32 / 255.,
-    alpha: rgba[3] as f32  / 255. }
+    alpha: rgba[3] as f32 / 255.,
+  }
 }
 
 impl From<u8> for Attributes {
@@ -126,7 +125,12 @@ impl From<u8> for Attributes {
     let paper: u8 = (b >> 3) & 0b111;
     let bright = ((b >> 6) & 1) == 1;
 
-    Attributes { ink, paper, bright, ..Default::default() }
+    Attributes {
+      ink,
+      paper,
+      bright,
+      ..Default::default()
+    }
   }
 }
 

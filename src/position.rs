@@ -6,7 +6,6 @@ fn new_transform() -> Transform {
   Transform::from_scale(Vec3::splat(SCALE))
 }
 
-
 /// The layer that a sprite is rendered at. This is translated into its
 /// z-coordinate.
 #[derive(Debug, Clone, Copy)]

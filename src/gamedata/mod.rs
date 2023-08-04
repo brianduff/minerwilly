@@ -1,8 +1,8 @@
 //! Plugin providing game data. At the moment this is hardcoded to be based
 //! on a manic binary z80 binary, and extracts the data directly from that.
 
-mod data;
 pub mod cavern;
+mod data;
 
 use anyhow::Result;
 use bevy::prelude::*;
@@ -22,9 +22,7 @@ impl Plugin for GameDataPlugin {
   }
 }
 
-fn load_game_data(
-  mut commands: Commands,
-) -> Result<()> {
+fn load_game_data(mut commands: Commands) -> Result<()> {
   commands.insert_resource(GameDataResource(GameData::load("assets/ManicMiner.bin")?));
 
   Ok(())

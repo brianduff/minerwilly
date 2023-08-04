@@ -5,7 +5,7 @@ use crate::{
   color::{Attributes, ColorName},
   debug::DebugText,
   gamedata::{cavern::CavernTileType, GameDataResource},
-  position::{Position, Direction, Layer},
+  position::{Direction, Layer, Position},
   TIMER_TICK,
 };
 

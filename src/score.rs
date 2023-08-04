@@ -1,10 +1,10 @@
+use crate::color::ColorName;
 use crate::{
   handle_errors,
   text::{Text, TextAttributes},
 };
 use anyhow::Result;
 use bevy::prelude::*;
-use crate::color::ColorName;
 
 pub struct ScorePlugin;
 
@@ -19,7 +19,7 @@ impl Score {
     self.score += amount;
     println!("Set score to {}", self.score);
     // In the original game, this doesn't update until the game is over
-//    self.high_score = Ord::max(self.score, self.high_score);
+    //    self.high_score = Ord::max(self.score, self.high_score);
   }
 }
 
@@ -32,7 +32,14 @@ struct HighScoreType;
 impl Plugin for ScorePlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, init_score);
-    app.add_systems(Update, (check_debug_keyboard, update_score.pipe(handle_errors), update_high_score.pipe(handle_errors)));
+    app.add_systems(
+      Update,
+      (
+        check_debug_keyboard,
+        update_score.pipe(handle_errors),
+        update_high_score.pipe(handle_errors),
+      ),
+    );
   }
 }
 
@@ -50,10 +57,7 @@ fn init_score(mut commands: Commands) {
   commands.spawn((HighScoreType, Text::new(&pad(0), (11, 19), &attr)));
 }
 
-fn update_score(
-  score: Res<Score>,
-  mut query: Query<&mut Text, With<ScoreType>>,
-) -> Result<()> {
+fn update_score(score: Res<Score>, mut query: Query<&mut Text, With<ScoreType>>) -> Result<()> {
   if score.is_changed() {
     query.get_single_mut()?.value = pad(score.score);
   }
@@ -77,7 +81,7 @@ fn pad(score: u16) -> String {
 }
 
 fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut score: ResMut<Score>) {
-  if keys.just_released(KeyCode::Return)  {
+  if keys.just_released(KeyCode::Return) {
     score.add(100);
   }
 }

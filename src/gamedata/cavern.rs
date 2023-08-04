@@ -25,30 +25,34 @@ pub enum CavernTileType {
 }
 
 impl From<usize> for CavernTileType {
-    fn from(value: usize) -> Self {
-        match value {
-          0 => CavernTileType::Background,
-          1 => CavernTileType::Floor,
-          2 => CavernTileType::CrumblingFloor,
-          3 => CavernTileType::Wall,
-          4 => CavernTileType::Conveyor,
-          5 => CavernTileType::Nasty1,
-          6 => CavernTileType::Nasty2,
-          7 => CavernTileType::Extra,
-          _ => CavernTileType::Background
-        }
+  fn from(value: usize) -> Self {
+    match value {
+      0 => CavernTileType::Background,
+      1 => CavernTileType::Floor,
+      2 => CavernTileType::CrumblingFloor,
+      3 => CavernTileType::Wall,
+      4 => CavernTileType::Conveyor,
+      5 => CavernTileType::Nasty1,
+      6 => CavernTileType::Nasty2,
+      7 => CavernTileType::Extra,
+      _ => CavernTileType::Background,
     }
+  }
 }
 
 impl CavernTileType {
   pub fn can_land(&self) -> bool {
-    matches!(self, &CavernTileType::Floor | &CavernTileType::CrumblingFloor | &CavernTileType::Conveyor | &CavernTileType::Wall)
+    matches!(
+      self,
+      &CavernTileType::Floor
+        | &CavernTileType::CrumblingFloor
+        | &CavernTileType::Conveyor
+        | &CavernTileType::Wall
+    )
   }
 }
 
 impl Cavern {
-
-
   pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
     self.get_bg_sprite_index(pos).unwrap_or(0).into()
   }
