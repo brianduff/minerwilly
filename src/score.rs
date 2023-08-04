@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use bevy::prelude::*;
-use crate::color::SpectrumColorName;
+use crate::color::ColorName;
 
 pub struct ScorePlugin;
 
@@ -42,7 +42,7 @@ fn init_score(mut commands: Commands) {
     high_score: 0,
   });
 
-  let attr = TextAttributes::new(SpectrumColorName::Yellow, SpectrumColorName::Black);
+  let attr = TextAttributes::new(ColorName::Yellow, ColorName::Black);
   commands.spawn(Text::new("High Score ", (0, 19), &attr));
   commands.spawn(Text::new("   Score ", (17, 19), &attr));
 

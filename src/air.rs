@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::color::SpectrumColorName;
+use crate::color::ColorName;
 
 use crate::text::{Text, TextAttributes};
 
@@ -17,20 +17,20 @@ fn setup(mut commands: Commands) {
   commands.spawn(Text::new(
     "AIR       ",
     (0, 17),
-    &TextAttributes::new_bright(SpectrumColorName::White, SpectrumColorName::Red)
+    &TextAttributes::new_bright(ColorName::White, ColorName::Red)
   ));
 
   // Green handlebar
   commands.spawn(Text::new(
     "                       ",
     (9, 17),
-    &TextAttributes::new_bright(SpectrumColorName::White, SpectrumColorName::Green)
+    &TextAttributes::new_bright(ColorName::White, ColorName::Green)
   ));
 
   // Black separator bar
   commands.spawn(Text::new(
     "                                ",
     (0, 18),
-    &TextAttributes::new_bright(SpectrumColorName::Black, SpectrumColorName::Black)
+    &TextAttributes::new_bright(ColorName::Black, ColorName::Black)
   ));
 }

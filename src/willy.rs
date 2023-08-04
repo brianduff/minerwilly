@@ -2,7 +2,7 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 
 use crate::{
   cavern::Cavern,
-  color::{SpectrumColor, SpectrumColorName},
+  color::{Attributes, ColorName},
   debug::DebugText,
   gamedata::{cavern::CavernTileType, GameDataResource},
   position::{Position, Direction, Layer},
@@ -85,7 +85,7 @@ fn setup(
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
 ) {
-  let willy_color = SpectrumColor::new_transparent_bg(SpectrumColorName::White, false);
+  let willy_color = Attributes::new_transparent_bg(ColorName::White, false);
 
   let images: Vec<_> = game_data
     .willy_sprites

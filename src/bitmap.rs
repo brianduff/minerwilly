@@ -1,4 +1,4 @@
-use crate::color::SpectrumColor;
+use crate::color::Attributes;
 use bevy::{
   prelude::Image,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
@@ -13,7 +13,7 @@ pub struct Bitmap {
   data: Vec<u8>,
   width: usize,
   height: usize,
-  pub color: Option<SpectrumColor>,
+  pub color: Option<Attributes>,
 }
 
 impl Bitmap {
@@ -34,7 +34,7 @@ impl Bitmap {
   /// will be used to determine the color the sprite is rendered with.
   pub fn create_with_attributes(width: usize, height: usize, data: &[u8]) -> Bitmap {
     // Read the first byte of attribute data to get the color.
-    let color: SpectrumColor = data[0].into();
+    let color: Attributes = data[0].into();
     Bitmap {
       width,
       height,
@@ -49,7 +49,7 @@ impl Bitmap {
     self.render_with_color(self.color.as_ref().unwrap())
   }
 
-  fn render_to_rgba(&self, color: &SpectrumColor) -> Vec<u8> {
+  fn render_to_rgba(&self, color: &Attributes) -> Vec<u8> {
     let mut rgba = Vec::with_capacity(self.width * self.height * 4);
 
     let ink_color = color.ink_rgba();
@@ -63,7 +63,7 @@ impl Bitmap {
   }
 
   /// Renders this sprite to a bevy image using the given color attributes.
-  pub fn render_with_color(&self, color: &SpectrumColor) -> Image {
+  pub fn render_with_color(&self, color: &Attributes) -> Image {
     let data = self.render_to_rgba(color);
     Image::new(
       Extent3d {

@@ -4,7 +4,7 @@ use bevy::{
   sprite::Anchor,
   render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use crate::{color::{SpectrumColor, SpectrumColorName}, position::{Layer, Position}};
+use crate::{color::{Attributes, ColorName}, position::{Layer, Position}};
 use std::io::Read;
 use std::{fs::File, path::Path};
 
@@ -46,23 +46,23 @@ struct CharsetResource(Charset);
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct TextAttributes {
-  ink: SpectrumColorName,
-  paper: SpectrumColorName,
+  ink: ColorName,
+  paper: ColorName,
   bright: bool
 }
 
 impl TextAttributes {
-  pub fn new(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
+  pub fn new(ink: ColorName, paper: ColorName) -> Self {
     Self { ink, paper, bright: false }
   }
 
-  pub fn new_bright(ink: SpectrumColorName, paper: SpectrumColorName) -> Self {
+  pub fn new_bright(ink: ColorName, paper: ColorName) -> Self {
     Self { ink, paper, bright: true }
   }
 }
 
 fn create_text(charset: &Charset, text: &str, attributes: &TextAttributes) -> Image {
-  charset.to_image(&SpectrumColor::new(attributes.ink, attributes.paper, attributes.bright), text)
+  charset.to_image(&Attributes::new(attributes.ink, attributes.paper, attributes.bright), text)
 }
 
 fn tile_sprite(layer: Layer, texture: Handle<Image>, pos: (u8, u8)) -> SpriteBundle {
@@ -121,7 +121,7 @@ impl Charset {
   }
 
   /// Converts the result of to_rgba into a Bevy Image.
-  fn to_image(&self, color: &SpectrumColor, text: &str) -> Image {
+  fn to_image(&self, color: &Attributes, text: &str) -> Image {
     let data = self.to_rgba(color, text);
     Image::new(
       Extent3d {
@@ -138,7 +138,7 @@ impl Charset {
   /// Given some text, return rgba data containing that text with the given
   /// paper and ink color. Any characters in `text` that are not in the ascii
   /// range 32-127 will be rendered as spaces.
-  fn to_rgba(&self, color: &SpectrumColor, text: &str) -> Vec<u8> {
+  fn to_rgba(&self, color: &Attributes, text: &str) -> Vec<u8> {
     let mut buffer = Vec::with_capacity(8 * 4 * text.len());
 
     let ink_rgba = &color.ink_rgba()[0..4];
@@ -176,7 +176,7 @@ mod tests {
     let charset = Charset::load("assets/textures/charset.bin")?;
     let text = "         Central Cavern         ";
     let rgba = charset.to_rgba(
-      &SpectrumColor {
+      &Attributes {
         ink: 0,
         paper: 6,
         bright: false,

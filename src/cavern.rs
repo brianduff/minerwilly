@@ -1,4 +1,4 @@
-use crate::color::SpectrumColorName;
+use crate::color::ColorName;
 use crate::position::{Layer, Position};
 use crate::{
   gamedata::GameDataResource,
@@ -41,7 +41,7 @@ fn setup(mut commands: Commands) {
     Text::new(
       "                     ",
       (0, 16),
-      &TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Yellow),
+      &TextAttributes::new(ColorName::Black, ColorName::Yellow),
     ),
   ));
 }

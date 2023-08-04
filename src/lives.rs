@@ -3,7 +3,7 @@
 use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{
-  color::{SpectrumColor, SpectrumColorName},
+  color::{Attributes, ColorName},
   gamedata::GameDataResource, position::{Layer, Position}, text::{Text, TextAttributes},
 };
 
@@ -45,7 +45,7 @@ fn setup(
   });
 
   // Get the animation images for the lives sprites
-  let color = SpectrumColor::new(SpectrumColorName::Cyan, SpectrumColorName::Black, true);
+  let color = Attributes::new(ColorName::Cyan, ColorName::Black, true);
 
   let mut images: Vec<_> = game_data
     .willy_sprites
@@ -57,7 +57,7 @@ fn setup(
   commands.insert_resource(Textures(images));
 
   // Render the background of the lives area, which is a fully filled black background (which we cheatingly generate using text)
-  let bg_color = TextAttributes::new(SpectrumColorName::Black, SpectrumColorName::Black);
+  let bg_color = TextAttributes::new(ColorName::Black, ColorName::Black);
 
   for y in 20..24 {
     commands.spawn(Text::new("                                ", (0, y), &bg_color));

@@ -1,10 +1,10 @@
 use anyhow::Result;
 use bevy::prelude::Color;
 
-/// A ZX Spectrum color. Consists of an ink value 0-7, a paper
+/// ZX Spectrum color attributes. Consists of an ink value 0-7, a paper
 /// value 0-7, and a boolean bright flag.
 #[derive(Debug, Eq, PartialEq, Default)]
-pub struct SpectrumColor {
+pub struct Attributes {
   // The ink color index 0..7
   pub ink: u8,
   // The paper color index 0..7
@@ -18,7 +18,7 @@ pub struct SpectrumColor {
 }
 
 #[derive(Default, Debug, Clone, Copy)]
-pub enum SpectrumColorName {
+pub enum ColorName {
   #[default]
   Black,
   Blue,
@@ -30,24 +30,24 @@ pub enum SpectrumColorName {
   White,
 }
 
-impl From<SpectrumColorName> for u8 {
-  fn from(value: SpectrumColorName) -> Self {
+impl From<ColorName> for u8 {
+  fn from(value: ColorName) -> Self {
     match value {
-      SpectrumColorName::Black => 0,
-      SpectrumColorName::Blue => 1,
-      SpectrumColorName::Red => 2,
-      SpectrumColorName::Magenta => 3,
-      SpectrumColorName::Green => 4,
-      SpectrumColorName::Cyan => 5,
-      SpectrumColorName::Yellow => 6,
-      SpectrumColorName::White => 7,
+      ColorName::Black => 0,
+      ColorName::Blue => 1,
+      ColorName::Red => 2,
+      ColorName::Magenta => 3,
+      ColorName::Green => 4,
+      ColorName::Cyan => 5,
+      ColorName::Yellow => 6,
+      ColorName::White => 7,
     }
   }
 }
 
-impl SpectrumColor {
-  pub fn new(ink: SpectrumColorName, paper: SpectrumColorName, bright: bool) -> Self {
-    SpectrumColor {
+impl Attributes {
+  pub fn new(ink: ColorName, paper: ColorName, bright: bool) -> Self {
+    Attributes {
       ink: ink.into(),
       paper: paper.into(),
       bright,
@@ -55,10 +55,10 @@ impl SpectrumColor {
     }
   }
 
-  pub fn new_transparent_bg(ink: SpectrumColorName, bright: bool) -> Self {
-    SpectrumColor {
+  pub fn new_transparent_bg(ink: ColorName, bright: bool) -> Self {
+    Attributes {
       ink: ink.into(),
-      paper: SpectrumColorName::Black.into(),
+      paper: ColorName::Black.into(),
       bright,
       transparent_background: true
     }
@@ -120,47 +120,47 @@ fn convert_color(rgba: &[u8]) -> Color {
     alpha: rgba[3] as f32  / 255. }
 }
 
-impl From<u8> for SpectrumColor {
+impl From<u8> for Attributes {
   fn from(b: u8) -> Self {
     let ink: u8 = b & 0b111;
     let paper: u8 = (b >> 3) & 0b111;
     let bright = ((b >> 6) & 1) == 1;
 
-    SpectrumColor { ink, paper, bright, ..Default::default() }
+    Attributes { ink, paper, bright, ..Default::default() }
   }
 }
 
-impl TryFrom<&str> for SpectrumColor {
+impl TryFrom<&str> for Attributes {
   type Error = anyhow::Error;
 
   fn try_from(s: &str) -> Result<Self> {
     let value: u8 = u8::from_str_radix(s, 16)?;
-    Ok(SpectrumColor::from(value))
+    Ok(Attributes::from(value))
   }
 }
 
-impl TryFrom<&String> for SpectrumColor {
+impl TryFrom<&String> for Attributes {
   type Error = anyhow::Error;
 
   fn try_from(s: &String) -> Result<Self> {
-    SpectrumColor::try_from(s.as_str())
+    Attributes::try_from(s.as_str())
   }
 }
 
-impl From<&SpectrumColor> for u8 {
-  fn from(color: &SpectrumColor) -> u8 {
+impl From<&Attributes> for u8 {
+  fn from(color: &Attributes) -> u8 {
     color.ink | (color.paper << 3) | if color.bright { 0b1000000 } else { 0 }
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::SpectrumColor;
+  use super::Attributes;
 
   #[test]
   fn can_convert_to_u8() {
     assert_eq!(
-      u8::from(&SpectrumColor {
+      u8::from(&Attributes {
         paper: 3,
         ink: 4,
         bright: true,
@@ -169,7 +169,7 @@ mod tests {
       0b1011100
     );
     assert_eq!(
-      u8::from(&SpectrumColor {
+      u8::from(&Attributes {
         paper: 3,
         ink: 4,
         bright: false,
@@ -178,7 +178,7 @@ mod tests {
       0b0011100
     );
     assert_eq!(
-      u8::from(&SpectrumColor {
+      u8::from(&Attributes {
         paper: 7,
         ink: 7,
         bright: true,
@@ -190,7 +190,7 @@ mod tests {
 
   #[test]
   fn can_convert_to_rgba() {
-    let color = SpectrumColor {
+    let color = Attributes {
       paper: 5,
       ink: 2,
       bright: true,

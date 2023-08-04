@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-  color::SpectrumColorName,
+  color::ColorName,
   position::Layer,
   text::{Text, TextAttributes},
 };
@@ -41,7 +41,7 @@ impl Plugin for DebugPlugin {
 }
 
 fn init(mut commands: Commands) {
-  let color = TextAttributes::new(SpectrumColorName::Green, SpectrumColorName::Black);
+  let color = TextAttributes::new(ColorName::Green, ColorName::Black);
 
   commands.insert_resource(DebugText {
     line1: " ".to_owned(),

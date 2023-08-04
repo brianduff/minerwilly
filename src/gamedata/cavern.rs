@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{bitmap::Bitmap, color::SpectrumColor};
+use crate::{bitmap::Bitmap, color::Attributes};
 
 // A cavern
 #[derive(Debug)]
@@ -8,7 +8,7 @@ pub struct Cavern {
   pub layout: Layout,
   pub name: String,
   pub tile_bitmaps: Vec<Bitmap>,
-  pub border_color: SpectrumColor,
+  pub border_color: Attributes,
 }
 
 /// There are eight types of cavern tiles.
@@ -90,7 +90,7 @@ impl TryFrom<&[u8]> for Cavern {
       pos = end;
     }
 
-    let border_color = SpectrumColor::try_from(bytes[627])?;
+    let border_color = Attributes::try_from(bytes[627])?;
 
     Ok(Cavern {
       layout,
@@ -107,11 +107,11 @@ impl TryFrom<&[u8]> for Cavern {
 /// the cavern.
 #[derive(Debug)]
 pub struct Layout {
-  cells: Vec<SpectrumColor>,
+  cells: Vec<Attributes>,
 }
 
 impl Layout {
-  fn get_cell_color(&self, char_x: u8, char_y: u8) -> &SpectrumColor {
+  fn get_cell_color(&self, char_x: u8, char_y: u8) -> &Attributes {
     &self.cells[(char_y as usize * 32) + char_x as usize]
   }
 }
@@ -122,10 +122,10 @@ impl TryFrom<&[u8]> for Layout {
   fn try_from(bytes: &[u8]) -> Result<Layout> {
     anyhow::ensure!(bytes.len() == 512, "Expected 512 bytes");
 
-    let mut cells: Vec<SpectrumColor> = Vec::with_capacity(512);
+    let mut cells: Vec<Attributes> = Vec::with_capacity(512);
 
     for byte in bytes {
-      cells.push(SpectrumColor::try_from(*byte)?)
+      cells.push(Attributes::try_from(*byte)?)
     }
 
     Ok(Layout { cells })
