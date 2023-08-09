@@ -11,7 +11,7 @@ fn new_transform() -> Transform {
 #[derive(Debug, Clone, Copy)]
 pub enum Layer {
   //Background = 0,
-  Tiles = 1,
+  Tiles = 0,
   Characters = 2,
   // For HUD etc.
   Debug = 3,
@@ -95,6 +95,17 @@ impl Position {
 
     ((zx_x / 8.) as u8, (zx_y / 8.) as u8)
   }
+
+  pub fn get_cell_box(&self) -> (f32, f32) {
+    // Snap x and y back to the start of the current char cell
+    let (char_x, char_y) = self.char_pos();
+    let x = SCALE * (char_x as f32 * 8. - 128.);
+    let y: f32 = SCALE * (96. - (char_y as f32 * 8.));
+
+    (x, y)
+  }
+
+
 }
 
 /// Return a transform for this actor position. Note that the x

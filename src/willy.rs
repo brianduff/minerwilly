@@ -6,7 +6,7 @@ use crate::{
   debug::DebugText,
   gamedata::{cavern::CavernTileType, GameDataResource},
   position::{Direction, Layer, Position},
-  TIMER_TICK,
+  TIMER_TICK, SCALE,
 };
 
 static JUMP_DELTAS: [f32; 16] = [
@@ -28,6 +28,7 @@ impl Plugin for WillyPlugin {
         check_keyboard,
         move_willy,
         check_landing,
+        draw_debug_overlay,
       )
         .chain(),
     );
@@ -167,6 +168,12 @@ fn move_willy(
       // In free fall!
       if motion.jump_counter > 15 {
         position.jump(-4.0);
+        // Stop walking
+        motion.walking = false;
+      }
+
+      if motion.jump_counter > 20 {
+        motion.airborne_status = AirborneStatus::FallingUnsafeToLand;
       }
 
       motion.jump_counter += 1;
@@ -262,26 +269,28 @@ fn check_wall_collision(
     ),
   >,
 ) {
-  let (position, mut motion) = query.get_single_mut().unwrap();
+  if query.get_single().is_ok() {
+    let (position, mut motion) = query.get_single_mut().unwrap();
 
-  let cavern_data = &data.caverns[cavern.cavern_number];
+    let cavern_data = &data.caverns[cavern.cavern_number];
 
-  let (curx, cury) = position.char_pos();
+    let (curx, cury) = position.char_pos();
 
-  motion.can_move_left = !matches!(
-    cavern_data.get_tile_type((curx, cury)),
-    CavernTileType::Wall
-  ) && !matches!(
-    cavern_data.get_tile_type((curx, cury + 1)),
-    CavernTileType::Wall
-  );
-  motion.can_move_right = !matches!(
-    cavern_data.get_tile_type((curx + 1, cury)),
-    CavernTileType::Wall
-  ) && !matches!(
-    cavern_data.get_tile_type((curx + 1, cury + 1)),
-    CavernTileType::Wall
-  );
+    motion.can_move_left = !matches!(
+      cavern_data.get_tile_type((curx, cury)),
+      CavernTileType::Wall
+    ) && !matches!(
+      cavern_data.get_tile_type((curx, cury + 1)),
+      CavernTileType::Wall
+    );
+    motion.can_move_right = !matches!(
+      cavern_data.get_tile_type((curx + 1, cury)),
+      CavernTileType::Wall
+    ) && !matches!(
+      cavern_data.get_tile_type((curx + 1, cury + 1)),
+      CavernTileType::Wall
+    );
+  }
 }
 
 // Check if willy has landed on something. Ideally a floor ;)
@@ -319,10 +328,56 @@ fn update_debug_info(
     ),
   >,
 ) {
-  let (motion, position) = query.get_single().unwrap();
+  if query.get_single().is_ok() {
+    let (motion, position) = query.get_single().unwrap();
 
-  let cavern = &data.caverns[cavern.cavern_number];
+    let cavern = &data.caverns[cavern.cavern_number];
 
-  debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
-  debug_text.line2 = format!("{:?}", motion.airborne_status);
+    debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
+    debug_text.line2 = format!("{:?}", motion.airborne_status);
+  }
+}
+
+#[allow(clippy::type_complexity)]
+fn draw_debug_overlay(
+  mut gizmos: Gizmos,
+  query: Query<
+    (&WillyMotion, &Position),
+    (
+      With<WillyMotion>,
+      Or<(Changed<WillyMotion>, Changed<Position>)>,
+    ),
+  >,
+) {
+  // Draw a bounding box around Willy's sprite charbox
+  if query.get_single().is_ok() {
+
+    let (motion, position) = query.get_single().unwrap();
+
+    let (mut x, mut y) = position.get_cell_box();
+
+    x += 8. * SCALE;
+    y -= 8. * SCALE;
+
+    // Draw a box around Willy's 16x16 sprite grid
+    gizmos.rect_2d(vec2((x, y)), 0., vec2((16. * SCALE, 16. * SCALE)), Color::WHITE);
+
+    // Draw a box around willy's 8*16 bounding pixel box
+
+    let (mut x, mut y) = position.pixel_pos();
+
+    x += 4. * SCALE;
+    y -= 8. * SCALE;
+
+    gizmos.rect_2d(vec2((x, y)), 0., vec2((8. * SCALE, 16. * SCALE)), Color::GOLD);
+  }
+}
+
+fn vec3(layer: Layer, (x, y): (f32, f32)) -> Vec3 {
+  let z = (layer as u32) as f32;
+  Vec3::new(x, y, z)
+}
+
+fn vec2((x, y): (f32, f32)) -> Vec2 {
+  Vec2::new(x, y)
 }

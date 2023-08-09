@@ -40,7 +40,11 @@ impl Plugin for DebugPlugin {
   }
 }
 
-fn init(mut commands: Commands) {
+fn init(mut commands: Commands, mut gizmo_config: ResMut<GizmoConfig>) {
+
+  // Make debug lines draw above everything else in the scene.
+  gizmo_config.depth_bias = -1.;
+
   let color = TextAttributes::new(ColorName::Green, ColorName::Black);
 
   commands.insert_resource(DebugText {
