@@ -78,6 +78,15 @@ struct WillyMotion {
   can_move_right: bool,
 }
 
+impl WillyMotion {
+  fn can_move(&self) -> bool {
+    match self.direction {
+      Direction::Left => self.can_move_left,
+      Direction::Right => self.can_move_right
+    }
+  }
+}
+
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
@@ -153,6 +162,13 @@ fn move_willy(
   timer.tick(time.delta());
 
   if timer.just_finished() {
+
+    // Stop moving if we've hit a wall.
+    if motion.walking && position.will_change_cell(motion.direction) && !motion.can_move()  {
+      motion.walking = false;
+    }
+
+
     // First, check if we're airborne. In this case, we move the y-coordinate of
     // willy, and increment the jump animation counter.
     if is_airborne(&motion.airborne_status) {
@@ -229,13 +245,13 @@ fn check_keyboard(
     }
   }
 
-  // Whatever we're doing, we must stop moving horizontally if we hit a wall.
-  if motion.walking
-    && (motion.direction == Direction::Right && !motion.can_move_right)
-      | (motion.direction == Direction::Left && !motion.can_move_left)
-  {
-    motion.walking = false;
-  }
+  // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
+  // if motion.walking
+  //   && (motion.direction == Direction::Right && !motion.can_move_right)
+  //     | (motion.direction == Direction::Left && !motion.can_move_left)
+  // {
+  //   motion.walking = false;
+  // }
 
   if old_direction != motion.direction {
     sprites.current_frame = 3 - sprites.current_frame;
@@ -277,17 +293,17 @@ fn check_wall_collision(
     let (curx, cury) = position.char_pos();
 
     motion.can_move_left = !matches!(
-      cavern_data.get_tile_type((curx, cury)),
+      cavern_data.get_tile_type((curx - 1, cury)),
       CavernTileType::Wall
     ) && !matches!(
-      cavern_data.get_tile_type((curx, cury + 1)),
+      cavern_data.get_tile_type((curx - 1, cury + 1)),
       CavernTileType::Wall
     );
     motion.can_move_right = !matches!(
-      cavern_data.get_tile_type((curx + 1, cury)),
+      cavern_data.get_tile_type((curx + 2, cury)),
       CavernTileType::Wall
     ) && !matches!(
-      cavern_data.get_tile_type((curx + 1, cury + 1)),
+      cavern_data.get_tile_type((curx + 2, cury + 1)),
       CavernTileType::Wall
     );
   }
@@ -335,6 +351,7 @@ fn update_debug_info(
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
     debug_text.line2 = format!("{:?}", motion.airborne_status);
+    debug_text.line3 = format!("can move: L: {:?} R: {:?}", motion.can_move_left, motion.can_move_right);
   }
 }
 

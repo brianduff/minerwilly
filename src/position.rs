@@ -12,9 +12,9 @@ fn new_transform() -> Transform {
 pub enum Layer {
   //Background = 0,
   Tiles = 0,
-  Characters = 2,
+  Characters = 1,
   // For HUD etc.
-  Debug = 3,
+  Debug = 2,
 }
 
 /// Represents a position on screen.
@@ -70,6 +70,18 @@ impl Position {
       },
       y,
     );
+  }
+
+  pub fn will_change_cell(&self, direction: Direction) -> bool {
+    let mut temp_position = Position {
+      layer: self.layer,
+      zx_pixel_pos: self.zx_pixel_pos
+    };
+    temp_position.step(direction);
+    let (cell_x, _) = self.char_pos();
+    let (new_x, _) = temp_position.char_pos();
+
+    new_x != cell_x
   }
 
   // Jump (or fall if distance is negative) the given distance in pixels.
