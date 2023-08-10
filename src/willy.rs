@@ -54,11 +54,17 @@ enum AirborneStatus {
   Collided, // not sure if we need this
 }
 
-fn is_airborne(status: &AirborneStatus) -> bool {
-  !matches!(
-    status,
-    AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided
-  )
+impl AirborneStatus {
+  fn is_airborne(&self) -> bool {
+    !matches!(
+      self,
+      AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided
+    )
+  }
+
+  fn is_falling(&self) -> bool {
+    matches!(self, AirborneStatus::FallingSafeToLand | AirborneStatus::FallingUnsafeToLand)
+  }
 }
 
 #[derive(Debug, Default, Resource)]
@@ -185,13 +191,13 @@ fn move_willy(
 
     if keys.jump_just_pressed {
       keys.jump_just_pressed = false;
-      if !is_airborne(&motion.airborne_status) {
+      if !&motion.airborne_status.is_airborne() {
         motion.airborne_status = AirborneStatus::Jumping;
         motion.jump_counter = 0;
       }
     }
 
-    if !is_airborne(&motion.airborne_status) {
+    if !&motion.airborne_status.is_airborne() {
       // If no key is pressed, we're not walking.
       if !keys.left_pressed && !keys.right_pressed {
         motion.walking = false;
@@ -247,7 +253,7 @@ fn move_willy(
 
     // First, check if we're airborne. In this case, we move the y-coordinate of
     // willy, and increment the jump animation counter.
-    if is_airborne(&motion.airborne_status) {
+    if motion.airborne_status.is_airborne() {
       if motion.jump_counter <= 15 {
         let delta = JUMP_DELTAS[motion.jump_counter as usize];
         position.jump(delta);
@@ -367,7 +373,7 @@ fn check_landing(
   mut query: Query<(&mut WillyMotion, &Position), Has<WillyMotion>>,
 ) {
   let (mut motion, position) = query.get_single_mut().unwrap();
-  if motion.is_changed() && motion.airborne_status == AirborneStatus::FallingSafeToLand {
+  if motion.is_changed() && motion.airborne_status.is_falling() {
     // Willy must be on a precise cell boundary to land.
     // let (cx, cy, pxo, pyo) = to_cell((transform.translation.x, transform.translation.y));
     if position.is_vertically_cell_aligned() {
