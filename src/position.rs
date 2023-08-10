@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::SCALE;
+use crate::actors::Direction;
 
 fn new_transform() -> Transform {
   Transform::from_scale(Vec3::splat(SCALE))
@@ -35,11 +36,6 @@ pub struct Position {
   zx_pixel_pos: (f32, f32),
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum Direction {
-  Left,
-  Right,
-}
 
 impl Position {
   /// Creates a new position at the top let of the given char pos.

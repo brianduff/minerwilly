@@ -4,17 +4,20 @@ use bevy::prelude::*;
 use cavern::CavernPlugin;
 use debug::DebugPlugin;
 use gamedata::GameDataPlugin;
+use guardian::GuardianPlugin;
 use lives::LivesPlugin;
 use score::ScorePlugin;
 use text::TextPlugin;
 use willy::WillyPlugin;
 
 mod air;
+mod actors;
 mod bitmap;
 mod cavern;
 mod color;
 mod debug;
 mod gamedata;
+mod guardian;
 mod lives;
 mod position;
 mod score;
@@ -68,6 +71,7 @@ fn main() -> Result<()> {
       AirPlugin,
       WillyPlugin,
       LivesPlugin,
+      GuardianPlugin,
     ))
     .add_systems(PostStartup, setup)
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))

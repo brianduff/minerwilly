@@ -3,7 +3,7 @@ use bevy::prelude::Color;
 
 /// ZX Spectrum color attributes. Consists of an ink value 0-7, a paper
 /// value 0-7, and a boolean bright flag.
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Eq, PartialEq, Default, Copy, Clone)]
 pub struct Attributes {
   // The ink color index 0..7
   pub ink: u8,

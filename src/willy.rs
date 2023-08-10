@@ -1,11 +1,12 @@
 use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 
 use crate::{
+  actors::Direction,
   cavern::Cavern,
   color::{Attributes, ColorName},
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
-  position::{Direction, Layer, Position, vec2},
+  position::{Layer, Position, vec2},
   TIMER_TICK, SCALE,
 };
 
@@ -27,6 +28,7 @@ impl Plugin for WillyPlugin {
         check_wall_collision,
         check_keyboard,
         move_willy,
+        check_drop,
         check_landing,
         listen_for_debug,
         draw_debug_overlay,
@@ -353,6 +355,25 @@ fn check_wall_collision(
   }
 }
 
+// Check if Willy should drop
+fn check_drop(
+  data: Res<GameDataResource>,
+  cavern: Res<Cavern>,
+  mut query: Query<(&mut WillyMotion, &Position, &AnimationTimer), Has<WillyMotion>>,
+) {
+  let (mut motion, position, timer) = query.get_single_mut().unwrap();
+  if timer.just_finished() && motion.is_changed() && !motion.airborne_status.is_airborne() {
+    let (cx, cy) = position.char_pos();
+    let cavern_data = &data.caverns[cavern.cavern_number];
+    if !cavern_data.get_tile_type((cx, cy + 2)).can_stand() && !cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
+      println!("Detected drop while not airborne at {:?}", (cx, cy));
+      motion.airborne_status = AirborneStatus::FallingSafeToLand;
+      motion.jump_counter = 8;
+      motion.walking = false;
+    }
+  }
+}
+
 // Check if willy has landed on something. Ideally a floor ;)
 fn check_landing(
   data: Res<GameDataResource>,
@@ -366,7 +387,7 @@ fn check_landing(
       let (cx, cy) = position.char_pos();
       // Is the tile under willy's feet something he can stand on?
       let cavern_data = &data.caverns[cavern.cavern_number];
-      if cavern_data.get_tile_type((cx, cy + 2)).can_land() || cavern_data.get_tile_type((cx + 1, cy + 2)).can_land() {
+      if cavern_data.get_tile_type((cx, cy + 2)).can_stand() || cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
         motion.walking = false;
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
       }
@@ -400,7 +421,6 @@ fn update_debug_info(
 ) {
   if query.get_single().is_ok() {
     let (motion, position, sprites) = query.get_single().unwrap();
-
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
     debug_text.line2 = format!("{:?} S:{}", motion.airborne_status, sprites.current_frame);

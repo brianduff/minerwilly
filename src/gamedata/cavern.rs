@@ -9,6 +9,8 @@ pub struct Cavern {
   pub name: String,
   pub tile_bitmaps: Vec<Bitmap>,
   pub border_color: Attributes,
+  pub guardians: Vec<Guardian>,
+  pub guardian_bitmaps: Vec<Bitmap>,
 }
 
 /// There are eight types of cavern tiles.
@@ -41,13 +43,14 @@ impl From<usize> for CavernTileType {
 }
 
 impl CavernTileType {
-  pub fn can_land(&self) -> bool {
+  pub fn can_stand(&self) -> bool {
     matches!(
       self,
       &CavernTileType::Floor
         | &CavernTileType::CrumblingFloor
         | &CavernTileType::Conveyor
         | &CavernTileType::Wall
+        | &CavernTileType::Extra
     )
   }
 }
@@ -96,11 +99,28 @@ impl TryFrom<&[u8]> for Cavern {
 
     let border_color = Attributes::try_from(bytes[627])?;
 
+    // Read the guardians, starting at offset 702.
+    let mut guardians = Vec::with_capacity(4);
+    let mut offset = 702;
+
+    while bytes[offset] != 255 {
+      guardians.push(bytes[offset..offset + 7].try_into()?);
+      offset += 7;
+    }
+
+    let mut guardian_bitmaps = Vec::with_capacity(8);
+    offset = 768;
+    for _ in 0..8 {
+      guardian_bitmaps.push(Bitmap::create(16, 16, &bytes[offset..offset + 32]));
+    }
+
     Ok(Cavern {
       layout,
       name,
       tile_bitmaps,
       border_color,
+      guardians,
+      guardian_bitmaps
     })
   }
 }
@@ -134,4 +154,59 @@ impl TryFrom<&[u8]> for Layout {
 
     Ok(Layout { cells })
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct Guardian {
+  pub attributes: Attributes,
+  pub start_pos: (u8, u8),
+  pub first_animation_frame: u8,
+  pub left_bound: u8,
+  pub right_bound: u8,
+  pub speed: GuardianSpeed,
+}
+
+impl TryFrom<&[u8]> for Guardian {
+  type Error = anyhow::Error;
+
+  fn try_from(guardian_data: &[u8]) -> Result<Guardian> {
+    anyhow::ensure!(guardian_data.len() == 7, "Expected 7 bytes");
+
+    let speed = if guardian_data[0] & 0b10000000 == 0 {
+      GuardianSpeed::Normal
+    } else {
+      GuardianSpeed::Fast
+    };
+
+    let mut attributes : Attributes = (guardian_data[0] & 0b01111111).into();
+    attributes.transparent_background = true;
+
+    let encoded_pos: u32 = guardian_data[1] as u32 |
+      ((guardian_data[2] as u32) << 8) |
+      ((guardian_data[3] as u32) << 16);
+
+    let x = (encoded_pos & 0b11111) as u8;
+    let y = (((encoded_pos & 0b111100000) >> 5) | ((encoded_pos & 0b10000000000000000000) >> 14)) as u8;
+    let start_pos = (x, y);
+
+    let first_animation_frame = guardian_data[4];
+    let left_bound = guardian_data[5] & 0b11111;
+    let right_bound = guardian_data[6] & 0b11111;
+
+    Ok(Guardian {
+      attributes,
+      start_pos,
+      first_animation_frame,
+      left_bound,
+      right_bound,
+      speed
+    })
+
+  }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum GuardianSpeed {
+  Normal,
+  Fast
 }
