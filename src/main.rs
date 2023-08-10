@@ -8,6 +8,7 @@ use guardian::GuardianPlugin;
 use lives::LivesPlugin;
 use score::ScorePlugin;
 use text::TextPlugin;
+use timer::TimerPlugin;
 use willy::WillyPlugin;
 
 mod air;
@@ -22,11 +23,12 @@ mod lives;
 mod position;
 mod score;
 mod text;
+mod timer;
 mod willy;
 
 pub static SCALE: f32 = 2.0;
 //static CELLSIZE: f32 = 8.0 * SCALE;
-static TIMER_TICK: f32 = 0.07;
+// static TIMER_TICK: f32 = 0.07;
 // slow mo static TIMER_TICK: f32 = 0.25;
 static BORDER_WIDTH_CHARS: f32 = 4.;
 
@@ -63,6 +65,7 @@ fn main() -> Result<()> {
         }),
     ) // prevents blurry sprites
     .add_plugins((
+      TimerPlugin,
       DebugPlugin,
       GameDataPlugin,
       CavernPlugin,

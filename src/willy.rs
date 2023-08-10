@@ -7,7 +7,7 @@ use crate::{
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
   position::{Layer, Position, vec2},
-  TIMER_TICK, SCALE,
+  SCALE, timer::GameTimer,
 };
 
 static JUMP_DELTAS: [f32; 16] = [
@@ -103,9 +103,6 @@ impl WillyMotion {
   }
 }
 
-#[derive(Component, Deref, DerefMut)]
-struct AnimationTimer(Timer);
-
 fn setup(
   mut commands: Commands,
   game_data: Res<GameDataResource>,
@@ -143,7 +140,6 @@ fn setup(
     motion,
     willy_pos,
     sprite_images,
-    AnimationTimer(Timer::from_seconds(TIMER_TICK, TimerMode::Repeating)),
     SpriteBundle {
       sprite: Sprite {
         anchor: Anchor::TopLeft,
@@ -163,13 +159,12 @@ fn setup(
 
 #[allow(clippy::type_complexity)]
 fn move_willy(
-  time: Res<Time>,
+  timer: Res<GameTimer>,
   mut keys: ResMut<KeyboardState>,
   mut query: Query<
     (
       &mut Position,
       &mut WillyMotion,
-      &mut AnimationTimer,
       &mut WillySprites,
       &mut Handle<Image>,
       &mut Transform,
@@ -177,10 +172,8 @@ fn move_willy(
     With<WillyMotion>,
   >,
 ) {
-  let (mut position, mut motion, mut timer, mut sprites, mut image, mut transform) =
+  let (mut position, mut motion, mut sprites, mut image, mut transform) =
     query.single_mut();
-
-  timer.tick(time.delta());
 
   if timer.just_finished() {
 
@@ -359,9 +352,10 @@ fn check_wall_collision(
 fn check_drop(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
-  mut query: Query<(&mut WillyMotion, &Position, &AnimationTimer), Has<WillyMotion>>,
+  timer: Res<GameTimer>,
+  mut query: Query<(&mut WillyMotion, &Position), Has<WillyMotion>>,
 ) {
-  let (mut motion, position, timer) = query.get_single_mut().unwrap();
+  let (mut motion, position) = query.get_single_mut().unwrap();
   if timer.just_finished() && motion.is_changed() && !motion.airborne_status.is_airborne() {
     let (cx, cy) = position.char_pos();
     let cavern_data = &data.caverns[cavern.cavern_number];
