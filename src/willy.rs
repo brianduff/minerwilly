@@ -162,7 +162,6 @@ fn setup(
 #[allow(clippy::type_complexity)]
 fn move_willy(
   time: Res<Time>,
-  // keys: Res<Input<KeyCode>>,
   mut keys: ResMut<KeyboardState>,
   mut query: Query<
     (
@@ -184,10 +183,6 @@ fn move_willy(
   if timer.just_finished() {
 
     let old_direction = motion.direction;
-
-    // let left_pressed = pressed(&keys, &LEFT_KEYS);
-    // let right_pressed = pressed(&keys, &RIGHT_KEYS);
-    // let jump_pressed = keys.just_pressed(KeyCode::Space);
 
     if keys.jump_just_pressed {
       keys.jump_just_pressed = false;
@@ -231,14 +226,6 @@ fn move_willy(
         motion.direction = Direction::Left;
       }
     }
-
-    // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
-    // if motion.walking
-    //   && (motion.direction == Direction::Right && !motion.can_move_right)
-    //     | (motion.direction == Direction::Left && !motion.can_move_left)
-    // {
-    //   motion.walking = false;
-    // }
 
     let changed_direction = old_direction != motion.direction;
     if changed_direction {
@@ -375,7 +362,6 @@ fn check_landing(
   let (mut motion, position) = query.get_single_mut().unwrap();
   if motion.is_changed() && motion.airborne_status.is_falling() {
     // Willy must be on a precise cell boundary to land.
-    // let (cx, cy, pxo, pyo) = to_cell((transform.translation.x, transform.translation.y));
     if position.is_vertically_cell_aligned() {
       let (cx, cy) = position.char_pos();
       // Is the tile under willy's feet something he can stand on?
