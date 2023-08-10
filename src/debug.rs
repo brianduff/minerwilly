@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
   color::ColorName,
-  position::Layer,
+  position::{Layer, Position, vec2},
   text::{Text, TextAttributes},
 };
 
@@ -36,7 +36,7 @@ struct DebugDisplayText(usize);
 impl Plugin for DebugPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, init);
-    app.add_systems(Update, update);
+    app.add_systems(Update, (update, draw_grid));
   }
 }
 
@@ -75,5 +75,26 @@ fn update(
     for (mut text, display) in query.iter_mut() {
       text.value = debug_text.get(**display).to_owned()
     }
+  }
+}
+
+fn draw_grid(mut gizmos: Gizmos) {
+  let mut pos = Position::at_char_pos(Layer::Debug,(0, 0));
+
+  let color = Color::Rgba { red: 1.0, green: 1.0, blue: 1.0, alpha: 0.05 };
+
+  for x in 1..32 {
+    let start = vec2(pos.set_char_pos((x, 0)).pixel_pos());
+    let end = vec2(pos.set_char_pos((x, 24)).pixel_pos());
+
+    gizmos.line_2d(start, end, color);
+  }
+
+  for y in 1..24 {
+    let start = vec2(pos.set_char_pos((0, y)).pixel_pos());
+    let end = vec2(pos.set_char_pos((32, y)).pixel_pos());
+
+    gizmos.line_2d(start, end, color);
+
   }
 }

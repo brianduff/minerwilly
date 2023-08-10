@@ -43,13 +43,13 @@ pub enum Direction {
 
 impl Position {
   /// Creates a new position at the top let of the given char pos.
-  pub fn at_char_pos(layer: Layer, (x, y): (u8, u8)) -> Self {
-    let zx_pixel_pos = (x as f32 * 8.0, y as f32 * 8.0);
-
-    Position {
+  pub fn at_char_pos(layer: Layer, pos: (u8, u8)) -> Self {
+    let mut me = Position {
       layer,
-      zx_pixel_pos,
-    }
+      zx_pixel_pos: (0., 0.)
+    };
+    me.set_char_pos(pos);
+    me
   }
 
   /// Returns true if Willy's head is aligned with the top left of a character
@@ -62,6 +62,12 @@ impl Position {
   // pixel coordinate by 2 in that direction (each animation frame,
   // willy or a guardian's sprite moves by 2 pixels)
   pub fn step(&mut self, direction: Direction) {
+    let (x, _) = self.zx_pixel_pos;
+    println!("Step {:?} from {}", direction, x);
+    self.step_impl(direction);
+  }
+
+  fn step_impl(&mut self, direction: Direction) {
     let (x, y) = self.zx_pixel_pos;
     self.zx_pixel_pos = (
       x + match direction {
@@ -70,6 +76,7 @@ impl Position {
       },
       y,
     );
+
   }
 
   pub fn will_change_cell(&self, direction: Direction) -> bool {
@@ -77,7 +84,7 @@ impl Position {
       layer: self.layer,
       zx_pixel_pos: self.zx_pixel_pos
     };
-    temp_position.step(direction);
+    temp_position.step_impl(direction);
     let (cell_x, _) = self.char_pos();
     let (new_x, _) = temp_position.char_pos();
 
@@ -117,7 +124,22 @@ impl Position {
     (x, y)
   }
 
+  pub fn set_char_x(&mut self, x: u8) -> &mut Self {
+    self.zx_pixel_pos.0 = x as f32 * 8.;
+    self
+  }
 
+  pub fn set_char_y(&mut self, y: u8) {
+    self.zx_pixel_pos.1 = y as f32 * 8.;
+  }
+
+  pub fn set_char_pos(&mut self, (x, y): (u8, u8)) -> &mut Self {
+    self.zx_pixel_pos = (
+      x as f32 * 8.,
+      y as f32 * 8.
+    );
+    self
+  }
 }
 
 /// Return a transform for this actor position. Note that the x
@@ -141,4 +163,9 @@ impl From<Position> for Transform {
   fn from(value: Position) -> Self {
     (&value).into()
   }
+}
+
+
+pub fn vec2((x, y): (f32, f32)) -> Vec2 {
+  Vec2::new(x, y)
 }

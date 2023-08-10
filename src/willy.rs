@@ -5,7 +5,7 @@ use crate::{
   color::{Attributes, ColorName},
   debug::DebugText,
   gamedata::{cavern::CavernTileType, GameDataResource},
-  position::{Direction, Layer, Position},
+  position::{Direction, Layer, Position, vec2},
   TIMER_TICK, SCALE,
 };
 
@@ -144,6 +144,7 @@ fn setup(
 #[allow(clippy::type_complexity)]
 fn move_willy(
   time: Res<Time>,
+  keys: Res<Input<KeyCode>>,
   mut query: Query<
     (
       &mut Position,
@@ -162,6 +163,66 @@ fn move_willy(
   timer.tick(time.delta());
 
   if timer.just_finished() {
+
+    let old_direction = motion.direction;
+
+    let left_pressed = pressed(&keys, &LEFT_KEYS);
+    let right_pressed = pressed(&keys, &RIGHT_KEYS);
+    let jump_pressed = keys.just_pressed(KeyCode::Space);
+
+    if jump_pressed && !is_airborne(&motion.airborne_status) {
+      motion.airborne_status = AirborneStatus::Jumping;
+      motion.jump_counter = 0;
+    }
+
+    if !is_airborne(&motion.airborne_status) {
+      // If no key is pressed, we're not walking.
+      if !left_pressed && !right_pressed {
+        motion.walking = false;
+      } else {
+        // Else we're walking
+        motion.walking = true;
+        // If only left is pressed, we're walking left.
+        if left_pressed && !right_pressed {
+          motion.direction = Direction::Left;
+        } else if !left_pressed {
+          motion.direction = Direction::Right;
+        }
+      }
+
+      if left_pressed || right_pressed {
+        motion.walking = true;
+
+      }
+
+      if motion.walking && (!right_pressed && !left_pressed) {
+        motion.walking = false;
+      }
+
+      if !motion.walking && right_pressed {
+        motion.walking = true;
+        motion.direction = Direction::Right;
+      }
+
+      if !motion.walking && !right_pressed && left_pressed {
+        motion.walking = true;
+        motion.direction = Direction::Left;
+      }
+    }
+
+    // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
+    // if motion.walking
+    //   && (motion.direction == Direction::Right && !motion.can_move_right)
+    //     | (motion.direction == Direction::Left && !motion.can_move_left)
+    // {
+    //   motion.walking = false;
+    // }
+
+    let changed_direction = old_direction != motion.direction;
+    if changed_direction {
+      sprites.current_frame = 3 - sprites.current_frame;
+      println!("Changed direction!");
+    }
 
     // Stop moving if we've hit a wall.
     if motion.walking && position.will_change_cell(motion.direction) && !motion.can_move()  {
@@ -198,19 +259,23 @@ fn move_willy(
     if motion.walking {
       let cycle = sprites.current_frame == FRAME_COUNT - 1;
 
-      sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
+      if !changed_direction {
+        sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
+      }
 
-      // Compute the texture index 0-7 of the current animation frame.
-      let texture_index = match motion.direction {
-        Direction::Right => sprites.current_frame,
-        Direction::Left => 4 + (3 - sprites.current_frame),
-      };
-
-      // Update the image we're using for the sprite
-      *image = sprites.images[texture_index].clone();
-
-      position.step(motion.direction);
+      if !changed_direction {
+        position.step(motion.direction);
+      }
     }
+
+    // Compute the texture index 0-7 of the current animation frame.
+    let texture_index = match motion.direction {
+      Direction::Right => sprites.current_frame,
+      Direction::Left => 4 + (3 - sprites.current_frame),
+    };
+    // Update the image we're using for the sprite
+    *image = sprites.images[texture_index].clone();
+
 
     // Actually move the sprite
     *transform = (&*position).into();
@@ -221,41 +286,41 @@ fn check_keyboard(
   keys: Res<Input<KeyCode>>,
   mut query: Query<(&mut WillyMotion, &mut WillySprites), Has<WillyMotion>>,
 ) {
-  let (mut motion, mut sprites) = query.single_mut();
+  // let (mut motion, mut sprites) = query.single_mut();
 
-  let old_direction = motion.direction;
+  // let old_direction = motion.direction;
 
-  let left_pressed = pressed(&keys, &LEFT_KEYS);
-  let right_pressed = pressed(&keys, &RIGHT_KEYS);
-  let jump_pressed = keys.just_pressed(KeyCode::Space);
+  // let left_pressed = pressed(&keys, &LEFT_KEYS);
+  // let right_pressed = pressed(&keys, &RIGHT_KEYS);
+  // let jump_pressed = keys.just_pressed(KeyCode::Space);
 
-  if jump_pressed && !is_airborne(&motion.airborne_status) {
-    motion.airborne_status = AirborneStatus::Jumping;
-    motion.jump_counter = 0;
-  }
-
-  if !is_airborne(&motion.airborne_status) {
-    motion.walking = false;
-    if !motion.walking && right_pressed {
-      motion.walking = true;
-      motion.direction = Direction::Right;
-    } else if !motion.walking && left_pressed {
-      motion.walking = true;
-      motion.direction = Direction::Left;
-    }
-  }
-
-  // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
-  // if motion.walking
-  //   && (motion.direction == Direction::Right && !motion.can_move_right)
-  //     | (motion.direction == Direction::Left && !motion.can_move_left)
-  // {
-  //   motion.walking = false;
+  // if jump_pressed && !is_airborne(&motion.airborne_status) {
+  //   motion.airborne_status = AirborneStatus::Jumping;
+  //   motion.jump_counter = 0;
   // }
 
-  if old_direction != motion.direction {
-    sprites.current_frame = 3 - sprites.current_frame;
-  }
+  // if !is_airborne(&motion.airborne_status) {
+  //   motion.walking = false;
+  //   if !motion.walking && right_pressed {
+  //     motion.walking = true;
+  //     motion.direction = Direction::Right;
+  //   } else if !motion.walking && left_pressed {
+  //     motion.walking = true;
+  //     motion.direction = Direction::Left;
+  //   }
+  // }
+
+  // // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
+  // // if motion.walking
+  // //   && (motion.direction == Direction::Right && !motion.can_move_right)
+  // //     | (motion.direction == Direction::Left && !motion.can_move_left)
+  // // {
+  // //   motion.walking = false;
+  // // }
+
+  // if old_direction != motion.direction {
+  //   sprites.current_frame = 3 - sprites.current_frame;
+  // }
 }
 
 fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
@@ -323,7 +388,7 @@ fn check_landing(
       let (cx, cy) = position.char_pos();
       // Is the tile under willy's feet something he can stand on?
       let cavern_data = &data.caverns[cavern.cavern_number];
-      if cavern_data.get_tile_type((cx, cy + 2)).can_land() {
+      if cavern_data.get_tile_type((cx, cy + 2)).can_land() || cavern_data.get_tile_type((cx + 1, cy + 2)).can_land() {
         motion.walking = false;
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
       }
@@ -337,7 +402,7 @@ fn update_debug_info(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
   query: Query<
-    (&WillyMotion, &Position),
+    (&WillyMotion, &Position, &WillySprites),
     (
       With<WillyMotion>,
       Or<(Changed<WillyMotion>, Changed<Position>)>,
@@ -345,12 +410,12 @@ fn update_debug_info(
   >,
 ) {
   if query.get_single().is_ok() {
-    let (motion, position) = query.get_single().unwrap();
+    let (motion, position, sprites) = query.get_single().unwrap();
 
     let cavern = &data.caverns[cavern.cavern_number];
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
-    debug_text.line2 = format!("{:?}", motion.airborne_status);
+    debug_text.line2 = format!("{:?} S:{}", motion.airborne_status, sprites.current_frame);
     debug_text.line3 = format!("can move: L: {:?} R: {:?}", motion.can_move_left, motion.can_move_right);
   }
 }
@@ -362,7 +427,6 @@ fn draw_debug_overlay(
     (&WillyMotion, &Position),
     (
       With<WillyMotion>,
-      Or<(Changed<WillyMotion>, Changed<Position>)>,
     ),
   >,
 ) {
@@ -395,6 +459,3 @@ fn vec3(layer: Layer, (x, y): (f32, f32)) -> Vec3 {
   Vec3::new(x, y, z)
 }
 
-fn vec2((x, y): (f32, f32)) -> Vec2 {
-  Vec2::new(x, y)
-}
