@@ -60,6 +60,13 @@ fn is_airborne(status: &AirborneStatus) -> bool {
   )
 }
 
+#[derive(Debug, Default, Resource)]
+struct KeyboardState {
+  left_pressed: bool,
+  right_pressed: bool,
+  jump_just_pressed: bool
+}
+
 // TODO: this could just be a resource rather than a component, since willy's
 // state is effectively global.
 #[derive(Component, Debug)]
@@ -139,12 +146,16 @@ fn setup(
       ..Default::default()
     },
   ));
+
+  commands.insert_resource(KeyboardState::default());
+
 }
 
 #[allow(clippy::type_complexity)]
 fn move_willy(
   time: Res<Time>,
-  keys: Res<Input<KeyCode>>,
+  // keys: Res<Input<KeyCode>>,
+  mut keys: ResMut<KeyboardState>,
   mut query: Query<
     (
       &mut Position,
@@ -166,45 +177,48 @@ fn move_willy(
 
     let old_direction = motion.direction;
 
-    let left_pressed = pressed(&keys, &LEFT_KEYS);
-    let right_pressed = pressed(&keys, &RIGHT_KEYS);
-    let jump_pressed = keys.just_pressed(KeyCode::Space);
+    // let left_pressed = pressed(&keys, &LEFT_KEYS);
+    // let right_pressed = pressed(&keys, &RIGHT_KEYS);
+    // let jump_pressed = keys.just_pressed(KeyCode::Space);
 
-    if jump_pressed && !is_airborne(&motion.airborne_status) {
-      motion.airborne_status = AirborneStatus::Jumping;
-      motion.jump_counter = 0;
+    if keys.jump_just_pressed {
+      keys.jump_just_pressed = false;
+      if !is_airborne(&motion.airborne_status) {
+        motion.airborne_status = AirborneStatus::Jumping;
+        motion.jump_counter = 0;
+      }
     }
 
     if !is_airborne(&motion.airborne_status) {
       // If no key is pressed, we're not walking.
-      if !left_pressed && !right_pressed {
+      if !keys.left_pressed && !keys.right_pressed {
         motion.walking = false;
       } else {
         // Else we're walking
         motion.walking = true;
         // If only left is pressed, we're walking left.
-        if left_pressed && !right_pressed {
+        if keys.left_pressed && !keys.right_pressed {
           motion.direction = Direction::Left;
-        } else if !left_pressed {
+        } else if !keys.left_pressed {
           motion.direction = Direction::Right;
         }
       }
 
-      if left_pressed || right_pressed {
+      if keys.left_pressed || keys.right_pressed {
         motion.walking = true;
 
       }
 
-      if motion.walking && (!right_pressed && !left_pressed) {
+      if motion.walking && (!keys.right_pressed && !keys.left_pressed) {
         motion.walking = false;
       }
 
-      if !motion.walking && right_pressed {
+      if !motion.walking && keys.right_pressed {
         motion.walking = true;
         motion.direction = Direction::Right;
       }
 
-      if !motion.walking && !right_pressed && left_pressed {
+      if !motion.walking && !keys.right_pressed && keys.left_pressed {
         motion.walking = true;
         motion.direction = Direction::Left;
       }
@@ -284,43 +298,14 @@ fn move_willy(
 
 fn check_keyboard(
   keys: Res<Input<KeyCode>>,
-  mut query: Query<(&mut WillyMotion, &mut WillySprites), Has<WillyMotion>>,
-) {
-  // let (mut motion, mut sprites) = query.single_mut();
+  mut keyboard_state: ResMut<KeyboardState>) {
 
-  // let old_direction = motion.direction;
+  keyboard_state.left_pressed = pressed(&keys, &LEFT_KEYS);
+  keyboard_state.right_pressed = pressed(&keys, &RIGHT_KEYS);
 
-  // let left_pressed = pressed(&keys, &LEFT_KEYS);
-  // let right_pressed = pressed(&keys, &RIGHT_KEYS);
-  // let jump_pressed = keys.just_pressed(KeyCode::Space);
-
-  // if jump_pressed && !is_airborne(&motion.airborne_status) {
-  //   motion.airborne_status = AirborneStatus::Jumping;
-  //   motion.jump_counter = 0;
-  // }
-
-  // if !is_airborne(&motion.airborne_status) {
-  //   motion.walking = false;
-  //   if !motion.walking && right_pressed {
-  //     motion.walking = true;
-  //     motion.direction = Direction::Right;
-  //   } else if !motion.walking && left_pressed {
-  //     motion.walking = true;
-  //     motion.direction = Direction::Left;
-  //   }
-  // }
-
-  // // // Whatever we're doing, we must stop moving horizontally if we hit a wall.
-  // // if motion.walking
-  // //   && (motion.direction == Direction::Right && !motion.can_move_right)
-  // //     | (motion.direction == Direction::Left && !motion.can_move_left)
-  // // {
-  // //   motion.walking = false;
-  // // }
-
-  // if old_direction != motion.direction {
-  //   sprites.current_frame = 3 - sprites.current_frame;
-  // }
+  if keys.just_pressed(KeyCode::Space) {
+    keyboard_state.jump_just_pressed = true;
+  }
 }
 
 fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
