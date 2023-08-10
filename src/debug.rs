@@ -29,6 +29,34 @@ impl DebugText {
     }
   }
 }
+#[derive(Event, Deref)]
+pub struct DebugStateToggled(bool);
+
+#[derive(Resource, Debug, Default)]
+struct DebugState {
+  show_text: bool,
+  show_grid: bool,
+}
+
+impl DebugState {
+  fn new() -> Self {
+    let mut state = DebugState::default();
+    state.set_all_on(true);
+    state
+  }
+
+  fn set_all_on(&mut self, on: bool) -> &mut Self {
+    self.show_text = on;
+    self.show_grid = on;
+    self
+  }
+
+  fn toggle(&mut self) -> bool {
+    self.set_all_on(!self.show_text);
+    self.show_text
+  }
+}
+
 
 #[derive(Component, Deref)]
 struct DebugDisplayText(usize);
@@ -36,7 +64,8 @@ struct DebugDisplayText(usize);
 impl Plugin for DebugPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, init);
-    app.add_systems(Update, (update, draw_grid));
+    app.add_systems(Update, (check_keyboard, update, draw_grid));
+    app.add_event::<DebugStateToggled>();
   }
 }
 
@@ -52,6 +81,7 @@ fn init(mut commands: Commands, mut gizmo_config: ResMut<GizmoConfig>) {
     line2: " ".to_owned(),
     line3: " ".to_owned(),
   });
+  commands.insert_resource(DebugState::new());
 
   commands.spawn((
     DebugDisplayText(0),
@@ -69,16 +99,26 @@ fn init(mut commands: Commands, mut gizmo_config: ResMut<GizmoConfig>) {
 
 fn update(
   debug_text: Res<DebugText>,
+  debug_state: Res<DebugState>,
   mut query: Query<(&mut Text, &mut DebugDisplayText), With<DebugDisplayText>>,
 ) {
-  if debug_text.is_changed() {
-    for (mut text, display) in query.iter_mut() {
-      text.value = debug_text.get(**display).to_owned()
+  if debug_text.is_changed() || debug_state.is_changed() {
+    if debug_state.show_text {
+      for (mut text, display) in query.iter_mut() {
+        text.value = debug_text.get(**display).to_owned()
+      }
+    } else {
+      for (mut text, _) in query.iter_mut() {
+        text.value = " ".to_owned();
+      }
     }
   }
 }
 
-fn draw_grid(mut gizmos: Gizmos) {
+fn draw_grid(mut gizmos: Gizmos, debug_state: Res<DebugState>) {
+  if !debug_state.show_grid {
+    return;
+  }
   let mut pos = Position::at_char_pos(Layer::Debug,(0, 0));
 
   let color = Color::Rgba { red: 1.0, green: 1.0, blue: 1.0, alpha: 0.05 };
@@ -96,5 +136,13 @@ fn draw_grid(mut gizmos: Gizmos) {
 
     gizmos.line_2d(start, end, color);
 
+  }
+}
+
+fn check_keyboard(mut debug_state: ResMut<DebugState>, keys: Res<Input<KeyCode>>,
+    mut event_writer: EventWriter<DebugStateToggled>) {
+  if keys.just_pressed(KeyCode::D) {
+    let on = debug_state.toggle();
+    event_writer.send(DebugStateToggled(on));
   }
 }

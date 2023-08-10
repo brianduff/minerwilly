@@ -3,7 +3,7 @@ use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
 use crate::{
   cavern::Cavern,
   color::{Attributes, ColorName},
-  debug::DebugText,
+  debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
   position::{Direction, Layer, Position, vec2},
   TIMER_TICK, SCALE,
@@ -28,6 +28,7 @@ impl Plugin for WillyPlugin {
         check_keyboard,
         move_willy,
         check_landing,
+        listen_for_debug,
         draw_debug_overlay,
       )
         .chain(),
@@ -148,6 +149,7 @@ fn setup(
   ));
 
   commands.insert_resource(KeyboardState::default());
+  commands.insert_resource(DebugState { show_debug_info: true });
 
 }
 
@@ -235,7 +237,6 @@ fn move_willy(
     let changed_direction = old_direction != motion.direction;
     if changed_direction {
       sprites.current_frame = 3 - sprites.current_frame;
-      println!("Changed direction!");
     }
 
     // Stop moving if we've hit a wall.
@@ -381,11 +382,22 @@ fn check_landing(
   }
 }
 
+#[derive(Resource)]
+struct DebugState {
+  show_debug_info: bool
+}
+
+fn listen_for_debug(mut event_reader: EventReader<DebugStateToggled>, mut state: ResMut<DebugState>) {
+  if !event_reader.is_empty() {
+    let event = event_reader.iter().last().unwrap();
+    state.show_debug_info = **event;
+
+  }
+}
+
 #[allow(clippy::type_complexity)]
 fn update_debug_info(
   mut debug_text: ResMut<DebugText>,
-  data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
   query: Query<
     (&WillyMotion, &Position, &WillySprites),
     (
@@ -397,7 +409,6 @@ fn update_debug_info(
   if query.get_single().is_ok() {
     let (motion, position, sprites) = query.get_single().unwrap();
 
-    let cavern = &data.caverns[cavern.cavern_number];
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
     debug_text.line2 = format!("{:?} S:{}", motion.airborne_status, sprites.current_frame);
@@ -408,17 +419,21 @@ fn update_debug_info(
 #[allow(clippy::type_complexity)]
 fn draw_debug_overlay(
   mut gizmos: Gizmos,
+  debug_state: Res<DebugState>,
   query: Query<
-    (&WillyMotion, &Position),
+    &Position,
     (
       With<WillyMotion>,
     ),
   >,
 ) {
+  if !debug_state.show_debug_info {
+    return;
+  }
   // Draw a bounding box around Willy's sprite charbox
   if query.get_single().is_ok() {
 
-    let (motion, position) = query.get_single().unwrap();
+    let position = query.get_single().unwrap();
 
     let (mut x, mut y) = position.get_cell_box();
 
@@ -437,10 +452,5 @@ fn draw_debug_overlay(
 
     gizmos.rect_2d(vec2((x, y)), 0., vec2((8. * SCALE, 16. * SCALE)), Color::GOLD);
   }
-}
-
-fn vec3(layer: Layer, (x, y): (f32, f32)) -> Vec3 {
-  let z = (layer as u32) as f32;
-  Vec3::new(x, y, z)
 }
 

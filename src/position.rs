@@ -63,7 +63,6 @@ impl Position {
   // willy or a guardian's sprite moves by 2 pixels)
   pub fn step(&mut self, direction: Direction) {
     let (x, _) = self.zx_pixel_pos;
-    println!("Step {:?} from {}", direction, x);
     self.step_impl(direction);
   }
 
