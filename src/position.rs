@@ -58,7 +58,6 @@ impl Position {
   // pixel coordinate by 2 in that direction (each animation frame,
   // willy or a guardian's sprite moves by 2 pixels)
   pub fn step(&mut self, direction: Direction) {
-    let (x, _) = self.zx_pixel_pos;
     self.step_impl(direction);
   }
 

@@ -65,7 +65,7 @@ impl Attributes {
   }
 
   /// Converts a color into an rgba color value
-  fn to_rgba(&self, value: &u8) -> Vec<u8> {
+  fn to_rgba(self, value: &u8) -> Vec<u8> {
     let code = if self.bright { 0xff } else { 0xee };
 
     let mut red = 0;
