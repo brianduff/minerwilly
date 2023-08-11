@@ -6,6 +6,7 @@ use debug::DebugPlugin;
 use gamedata::GameDataPlugin;
 use guardian::GuardianPlugin;
 use lives::LivesPlugin;
+use portal::PortalPlugin;
 use score::ScorePlugin;
 use text::TextPlugin;
 use timer::TimerPlugin;
@@ -20,6 +21,7 @@ mod debug;
 mod gamedata;
 mod guardian;
 mod lives;
+mod portal;
 mod position;
 mod score;
 mod text;
@@ -75,6 +77,7 @@ fn main() -> Result<()> {
       WillyPlugin,
       LivesPlugin,
       GuardianPlugin,
+      PortalPlugin,
     ))
     .add_systems(PostStartup, setup)
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))

@@ -29,7 +29,7 @@ struct Guardian {
 
 fn spawn_guardians(
   mut commands: Commands,
-  mut query: Query<Entity, With<Guardian>>,
+  query: Query<Entity, With<Guardian>>,
   cavern: ResMut<Cavern>,
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,

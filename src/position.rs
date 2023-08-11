@@ -14,8 +14,9 @@ pub enum Layer {
   //Background = 0,
   Tiles = 0,
   Characters = 1,
+  Portal = 2,
   // For HUD etc.
-  Debug = 2,
+  Debug = 3,
 }
 
 /// Represents a position on screen.
