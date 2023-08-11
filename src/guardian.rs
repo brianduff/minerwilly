@@ -12,7 +12,12 @@ pub struct GuardianPlugin;
 impl Plugin for GuardianPlugin {
   fn build(&self, app: &mut App) {
     // app.add_systems(Startup, init);
-    app.add_systems(Update, (spawn_guardians, move_guardians, change_direction, update_actor_sprite::<Guardian>).chain());
+    app.add_systems(Update, (
+      spawn_guardians,
+      update_actor_sprite::<Guardian>,
+      move_guardians,
+      change_direction
+    ).chain());
   }
 }
 
@@ -22,25 +27,19 @@ struct Guardian {
   data: cavern::Guardian,
 }
 
-// fn init(mut commands: Commands, game_data: Res<GameDataResource>) {}
-
 fn spawn_guardians(
   mut commands: Commands,
+  mut query: Query<Entity, With<Guardian>>,
   cavern: ResMut<Cavern>,
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
 ) {
   if cavern.is_changed() {
-    println!(
-      "I would like to spawn guardians for cavern {}",
-      cavern.cavern_number
-    );
-    println!(
-      "Guardians: {:?}",
-      game_data.caverns[cavern.cavern_number].guardians
-    );
 
-    // TODO: despawn old guardians.
+    // Despawn old entities
+    for entity in query.iter() {
+      commands.entity(entity).despawn();
+    }
 
     let cavern_data = &game_data.caverns[cavern.cavern_number];
 
@@ -53,19 +52,30 @@ fn spawn_guardians(
         .map(|s| images.add(s.render_with_color(&g.attributes)))
         .collect();
 
+      let mut position = Position::at_char_pos(Layer::Characters, g.start_pos);
+      let movement = HorizontalMotion {
+        walking: true,
+        current_frame: g.first_animation_frame as usize
+      };
+
+      // If we're initially moving left, we need to move the position to the rightmost
+      // pixel position of the cell.
+      if movement.direction() == Direction::Left {
+        position.step(Direction::Right);
+        position.step(Direction::Right);
+        position.step(Direction::Right);
+      }
+
       commands.spawn(Actor::new(
         Guardian {
           id: id as u8,
           data: g.clone(),
         },
-        Position::at_char_pos(Layer::Characters, g.start_pos),
+        position,
         Sprites {
           images,
         },
-        HorizontalMotion {
-          walking: true,
-          current_frame: g.first_animation_frame as usize
-        },
+        movement,
       ));
     }
   }

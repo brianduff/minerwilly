@@ -104,6 +104,7 @@ impl TryFrom<&[u8]> for Cavern {
     let mut offset = 702;
 
     while bytes[offset] != 255 {
+      println!("Cavern {} Guardian {}", name, guardians.len());
       guardians.push(bytes[offset..offset + 7].try_into()?);
       offset += 7;
     }
@@ -186,8 +187,11 @@ impl TryFrom<&[u8]> for Guardian {
       ((guardian_data[2] as u32) << 8) |
       ((guardian_data[3] as u32) << 16);
 
+    println!("data1:     {:08b}{:08b}{:08b}", guardian_data[3], guardian_data[2], guardian_data[1]);
+    println!("pos flags: {:024b}", encoded_pos);
+
     let x = (encoded_pos & 0b11111) as u8;
-    let y = (((encoded_pos & 0b111100000) >> 5) | ((encoded_pos & 0b10000000000000000000) >> 14)) as u8;
+    let y = ((encoded_pos & 0b111100000) >> 5) as u8;
     let start_pos = (x, y);
 
     let first_animation_frame = guardian_data[4];

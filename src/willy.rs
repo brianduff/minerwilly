@@ -73,7 +73,7 @@ impl AirborneStatus {
 struct KeyboardState {
   left_pressed: bool,
   right_pressed: bool,
-  jump_just_pressed: bool
+  jump_pressed: bool
 }
 
 // TODO: this could just be a resource rather than a component, since willy's
@@ -179,12 +179,9 @@ fn move_willy(
 
     let old_direction = motion.direction;
 
-    if keys.jump_just_pressed {
-      keys.jump_just_pressed = false;
-      if !&motion.airborne_status.is_airborne() {
-        motion.airborne_status = AirborneStatus::Jumping;
-        motion.jump_counter = 0;
-      }
+    if keys.jump_pressed && !&motion.airborne_status.is_airborne() {
+      motion.airborne_status = AirborneStatus::Jumping;
+      motion.jump_counter = 0;
     }
 
     if !&motion.airborne_status.is_airborne() {
@@ -291,10 +288,8 @@ fn check_keyboard(
 
   keyboard_state.left_pressed = pressed(&keys, &LEFT_KEYS);
   keyboard_state.right_pressed = pressed(&keys, &RIGHT_KEYS);
+  keyboard_state.jump_pressed = pressed(&keys, &[KeyCode::Space]);
 
-  if keys.just_pressed(KeyCode::Space) {
-    keyboard_state.jump_just_pressed = true;
-  }
 }
 
 fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
@@ -382,7 +377,7 @@ fn check_landing(
       // Is the tile under willy's feet something he can stand on?
       let cavern_data = &data.caverns[cavern.cavern_number];
       if cavern_data.get_tile_type((cx, cy + 2)).can_stand() || cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
-        motion.walking = false;
+//        motion.walking = false;
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
       }
     }

@@ -40,6 +40,7 @@ impl HorizontalMotion {
         clamp(&mut self.current_frame, 0, 3);
       }
     };
+
   }
 
   pub fn change_direction(&mut self) {

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 static TIMER_TICK: f32 = 0.07;
+//static TIMER_TICK: f32 = 0.2;
 
 pub struct TimerPlugin;
 
