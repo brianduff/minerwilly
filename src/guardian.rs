@@ -22,7 +22,7 @@ impl Plugin for GuardianPlugin {
 }
 
 #[derive(Component, Debug)]
-struct Guardian {
+pub struct Guardian {
   id: u8,
   data: cavern::Guardian,
 }

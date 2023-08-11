@@ -46,12 +46,19 @@ impl From<usize> for CavernTileType {
 impl CavernTileType {
   pub fn can_stand(&self) -> bool {
     matches!(
-      self,
-      &CavernTileType::Floor
-        | &CavernTileType::CrumblingFloor
-        | &CavernTileType::Conveyor
-        | &CavernTileType::Wall
-        | &CavernTileType::Extra
+      *self,
+      CavernTileType::Floor
+        | CavernTileType::CrumblingFloor
+        | CavernTileType::Conveyor
+        | CavernTileType::Wall
+        | CavernTileType::Extra
+    )
+  }
+
+  pub fn is_nasty(&self) -> bool {
+    matches!(
+      *self,
+      CavernTileType::Nasty1 | CavernTileType::Nasty2
     )
   }
 }

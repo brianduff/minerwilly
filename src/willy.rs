@@ -26,6 +26,7 @@ impl Plugin for WillyPlugin {
         check_keyboard,
         move_willy,
         update_actor_sprite::<Willy>,
+        check_nasty_collisions,
         check_drop,
         check_landing,
         listen_for_debug,
@@ -393,3 +394,26 @@ fn draw_debug_overlay(
   }
 }
 
+
+/// Checks for collisions with nasties.
+fn check_nasty_collisions(
+  data: Res<GameDataResource>,
+  cavern: Res<Cavern>,
+  query: Query<&Position, (With<Willy>, Changed<Position>)>
+) {
+  if !query.is_empty() {
+    let (px, py) = query.get_single().unwrap().char_pos();
+
+    let cavern = &data.caverns[cavern.cavern_number];
+
+    // If any of the four grid cells that contain Willy's sprite contain
+    // a nasty, he has collided.
+    for x in px..=px+1 {
+      for y in py..=py+1 {
+        if cavern.get_tile_type((x, y)).is_nasty() {
+          println!("Collided with NASTY at {:?}", (x, y));
+        }
+      }
+    }
+  }
+}

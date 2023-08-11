@@ -14,10 +14,10 @@ impl Plugin for PortalPlugin {
 }
 
 #[derive(Component)]
-struct Portal {
+pub struct Portal {
   unlocked: bool,
   // The position of a portal never changes.
-  position: Position,
+  pub position: Position,
   normal_image: Handle<Image>,
   inverse_image: Handle<Image>,
   inverted: bool,
