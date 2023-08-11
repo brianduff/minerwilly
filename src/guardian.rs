@@ -1,18 +1,18 @@
 use bevy::prelude::*;
 
 use crate::{
-  actors::{Actor, Direction, HorizontalMotion, Sprites},
+  actors::{Actor, Direction, HorizontalMotion, Sprites, update_actor_sprite},
   cavern::Cavern,
   gamedata::{cavern, GameDataResource},
-  position::{Layer, Position},
+  position::{Layer, Position}, timer::GameTimer,
 };
 
 pub struct GuardianPlugin;
 
 impl Plugin for GuardianPlugin {
   fn build(&self, app: &mut App) {
-    app.add_systems(Startup, init);
-    app.add_systems(Update, spawn_guardians);
+    // app.add_systems(Startup, init);
+    app.add_systems(Update, (spawn_guardians, move_guardians, change_direction, update_actor_sprite::<Guardian>).chain());
   }
 }
 
@@ -22,7 +22,7 @@ struct Guardian {
   data: cavern::Guardian,
 }
 
-fn init(mut commands: Commands, game_data: Res<GameDataResource>) {}
+// fn init(mut commands: Commands, game_data: Res<GameDataResource>) {}
 
 fn spawn_guardians(
   mut commands: Commands,
@@ -61,17 +61,52 @@ fn spawn_guardians(
         Position::at_char_pos(Layer::Characters, g.start_pos),
         Sprites {
           images,
-          current_frame: g.first_animation_frame as usize,
         },
         HorizontalMotion {
           walking: true,
-          direction: if g.first_animation_frame <= 3 {
-            Direction::Right
-          } else {
-            Direction::Left
-          },
+          current_frame: g.first_animation_frame as usize
         },
       ));
     }
+  }
+}
+
+
+fn move_guardians(
+  timer: Res<GameTimer>,
+  mut query: Query<(
+    &mut HorizontalMotion,
+    &mut Position
+  ),
+    With<Guardian>
+  >) {
+
+  if timer.just_finished() {
+    for (mut motion, mut pos) in query.iter_mut() {
+      motion.step(&mut pos);
+    }
+  }
+}
+
+/// Changes the Guardian's direction if it has reached the end of its
+/// path.
+#[allow(clippy::type_complexity)]
+fn change_direction(mut query: Query<(
+  &mut HorizontalMotion,
+  &mut Position,
+  &Guardian
+),
+(
+  With<Guardian>,
+  Changed<Position>
+)
+>) {
+  for (mut motion, mut position, guardian) in query.iter_mut() {
+    let (x, _) = position.char_pos();
+    if (matches!(motion.direction(), Direction::Right) &&  x > guardian.data.right_bound) ||
+      (matches!(motion.direction(), Direction::Left) && x < guardian.data.left_bound) {
+        motion.change_direction();
+        motion.step(&mut position);
+      }
   }
 }

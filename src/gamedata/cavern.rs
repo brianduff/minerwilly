@@ -112,6 +112,7 @@ impl TryFrom<&[u8]> for Cavern {
     offset = 768;
     for _ in 0..8 {
       guardian_bitmaps.push(Bitmap::create(16, 16, &bytes[offset..offset + 32]));
+      offset += 32;
     }
 
     Ok(Cavern {
