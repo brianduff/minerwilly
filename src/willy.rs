@@ -1,7 +1,7 @@
-use bevy::{ecs::query::Has, prelude::*, sprite::Anchor};
+use bevy::{ecs::query::Has, prelude::*};
 
 use crate::{
-  actors::Direction,
+  actors::{Direction, Actor, Sprites, HorizontalMotion, update_actor_sprite},
   cavern::Cavern,
   color::{Attributes, ColorName},
   debug::{DebugText, DebugStateToggled},
@@ -16,9 +16,6 @@ static JUMP_DELTAS: [f32; 16] = [
 
 pub struct WillyPlugin;
 
-// The number of frames in willy's sprite animation
-static FRAME_COUNT: usize = 4;
-
 impl Plugin for WillyPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, setup);
@@ -28,6 +25,7 @@ impl Plugin for WillyPlugin {
         check_wall_collision,
         check_keyboard,
         move_willy,
+        update_actor_sprite::<Willy>,
         check_drop,
         check_landing,
         listen_for_debug,
@@ -40,9 +38,20 @@ impl Plugin for WillyPlugin {
 }
 
 #[derive(Component)]
-struct WillySprites {
-  images: Vec<Handle<Image>>,
-  current_frame: usize,
+struct Willy {
+  airborne_status: AirborneStatus,
+  jump_counter: u8,
+  can_move_left: bool,
+  can_move_right: bool
+}
+
+impl Willy {
+  fn can_move(&self, direction: Direction) -> bool {
+    match direction {
+      Direction::Left => self.can_move_left,
+      Direction::Right => self.can_move_right
+    }
+  }
 }
 
 /// Willy's airborne status.
@@ -76,33 +85,6 @@ struct KeyboardState {
   jump_pressed: bool
 }
 
-// TODO: this could just be a resource rather than a component, since willy's
-// state is effectively global.
-#[derive(Component, Debug)]
-struct WillyMotion {
-  walking: bool,
-  airborne_status: AirborneStatus,
-  direction: Direction,
-  // This keeps track of where in a jump we are. It's
-  // initialized to 0 when jumping starts, and incremented
-  // on each timer tick as long as we're jumping.
-  jump_counter: u8,
-
-  // Collision detection will update these to indicate whether moving to the
-  // next cell is possible in the given direction.
-  can_move_left: bool,
-  can_move_right: bool,
-}
-
-impl WillyMotion {
-  fn can_move(&self) -> bool {
-    match self.direction {
-      Direction::Left => self.can_move_left,
-      Direction::Right => self.can_move_right
-    }
-  }
-}
-
 fn setup(
   mut commands: Commands,
   game_data: Res<GameDataResource>,
@@ -115,41 +97,25 @@ fn setup(
     .iter()
     .map(|s| images.add(s.render_with_color(&willy_color)))
     .collect();
-  let initial_texture = images.first().unwrap().clone();
-
-  let sprite_images = WillySprites {
-    images,
-    current_frame: 0,
-  };
-
-  let motion = WillyMotion {
-    walking: false,
-    airborne_status: AirborneStatus::NotJumpingOrFalling,
-    direction: Direction::Right,
-    jump_counter: 0,
-    can_move_left: true,
-    can_move_right: true,
-  };
 
   // TODO: use cavern data to set spawn position
   let willy_pos = Position::at_char_pos(Layer::Characters, (2, 13));
-  let transform: Transform = (&willy_pos).into();
 
-  // Spawn Willy
-  commands.spawn((
-    motion,
-    willy_pos,
-    sprite_images,
-    SpriteBundle {
-      sprite: Sprite {
-        anchor: Anchor::TopLeft,
-        ..Default::default()
-      },
-      texture: initial_texture,
-      // TODO: use the cavern data to spawn in the right place
-      transform,
-      ..Default::default()
+  commands.spawn(Actor::new(
+    Willy {
+      airborne_status: AirborneStatus::NotJumpingOrFalling,
+      jump_counter: 0,
+      can_move_left: true,
+      can_move_right: true
     },
+    willy_pos,
+    Sprites {
+      images
+    },
+    HorizontalMotion {
+      walking: false,
+      current_frame: 0
+    }
   ));
 
   commands.insert_resource(KeyboardState::default());
@@ -160,31 +126,29 @@ fn setup(
 #[allow(clippy::type_complexity)]
 fn move_willy(
   timer: Res<GameTimer>,
-  mut keys: ResMut<KeyboardState>,
+  keys: ResMut<KeyboardState>,
   mut query: Query<
     (
       &mut Position,
-      &mut WillyMotion,
-      &mut WillySprites,
-      &mut Handle<Image>,
-      &mut Transform,
+      &mut Willy,
+      &mut HorizontalMotion,
     ),
-    With<WillyMotion>,
+    With<Willy>,
   >,
 ) {
-  let (mut position, mut motion, mut sprites, mut image, mut transform) =
+  let (mut position, mut willy, mut motion) =
     query.single_mut();
 
   if timer.just_finished() {
-
-    let old_direction = motion.direction;
-
-    if keys.jump_pressed && !&motion.airborne_status.is_airborne() {
-      motion.airborne_status = AirborneStatus::Jumping;
-      motion.jump_counter = 0;
+    if keys.jump_pressed && !&willy.airborne_status.is_airborne() {
+      willy.airborne_status = AirborneStatus::Jumping;
+      willy.jump_counter = 0;
     }
 
-    if !&motion.airborne_status.is_airborne() {
+    if !&willy.airborne_status.is_airborne() {
+
+      // TODO: clean this up - wtf?
+
       // If no key is pressed, we're not walking.
       if !keys.left_pressed && !keys.right_pressed {
         motion.walking = false;
@@ -193,15 +157,14 @@ fn move_willy(
         motion.walking = true;
         // If only left is pressed, we're walking left.
         if keys.left_pressed && !keys.right_pressed {
-          motion.direction = Direction::Left;
+          motion.set_direction(Direction::Left);
         } else if !keys.left_pressed {
-          motion.direction = Direction::Right;
+          motion.set_direction(Direction::Right);
         }
       }
 
       if keys.left_pressed || keys.right_pressed {
         motion.walking = true;
-
       }
 
       if motion.walking && (!keys.right_pressed && !keys.left_pressed) {
@@ -210,75 +173,50 @@ fn move_willy(
 
       if !motion.walking && keys.right_pressed {
         motion.walking = true;
-        motion.direction = Direction::Right;
+        motion.set_direction(Direction::Right);
       }
 
       if !motion.walking && !keys.right_pressed && keys.left_pressed {
         motion.walking = true;
-        motion.direction = Direction::Left;
+        motion.set_direction(Direction::Left);
       }
     }
 
-    let changed_direction = old_direction != motion.direction;
-    if changed_direction {
-      sprites.current_frame = 3 - sprites.current_frame;
-    }
-
     // Stop moving if we've hit a wall.
-    if motion.walking && position.will_change_cell(motion.direction) && !motion.can_move()  {
+    if motion.walking && position.will_change_cell(motion.direction()) && !willy.can_move(motion.direction())  {
       motion.walking = false;
     }
 
 
     // First, check if we're airborne. In this case, we move the y-coordinate of
     // willy, and increment the jump animation counter.
-    if motion.airborne_status.is_airborne() {
-      if motion.jump_counter <= 15 {
-        let delta = JUMP_DELTAS[motion.jump_counter as usize];
+    if willy.airborne_status.is_airborne() {
+      if willy.jump_counter <= 15 {
+        let delta = JUMP_DELTAS[willy.jump_counter as usize];
         position.jump(delta);
       }
 
-      if motion.jump_counter > 7 {
-        motion.airborne_status = AirborneStatus::FallingSafeToLand;
+      if willy.jump_counter > 7 {
+        willy.airborne_status = AirborneStatus::FallingSafeToLand;
       }
 
       // In free fall!
-      if motion.jump_counter > 15 {
+      if willy.jump_counter > 15 {
         position.jump(-4.0);
         // Stop walking
         motion.walking = false;
       }
 
-      if motion.jump_counter > 20 {
-        motion.airborne_status = AirborneStatus::FallingUnsafeToLand;
+      if willy.jump_counter > 20 {
+        willy.airborne_status = AirborneStatus::FallingUnsafeToLand;
       }
 
-      motion.jump_counter += 1;
+      willy.jump_counter += 1;
     }
 
     if motion.walking {
-      let cycle = sprites.current_frame == FRAME_COUNT - 1;
-
-      if !changed_direction {
-        sprites.current_frame = if cycle { 0 } else { sprites.current_frame + 1 };
-      }
-
-      if !changed_direction {
-        position.step(motion.direction);
-      }
+      motion.step(&mut position);
     }
-
-    // Compute the texture index 0-7 of the current animation frame.
-    let texture_index = match motion.direction {
-      Direction::Right => sprites.current_frame,
-      Direction::Left => 4 + (3 - sprites.current_frame),
-    };
-    // Update the image we're using for the sprite
-    *image = sprites.images[texture_index].clone();
-
-
-    // Actually move the sprite
-    *transform = (&*position).into();
   }
 }
 
@@ -312,10 +250,10 @@ fn check_wall_collision(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
   mut query: Query<
-    (&Position, &mut WillyMotion),
+    (&Position, &mut Willy),
     (
-      With<WillyMotion>,
-      Or<(Changed<WillyMotion>, Changed<Position>)>,
+      With<Willy>,
+      Or<(Changed<Willy>, Changed<Position>)>,
     ),
   >,
 ) {
@@ -348,16 +286,16 @@ fn check_drop(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
   timer: Res<GameTimer>,
-  mut query: Query<(&mut WillyMotion, &Position), Has<WillyMotion>>,
+  mut query: Query<(&mut Willy, &mut HorizontalMotion, &Position), Has<Willy>>,
 ) {
-  let (mut motion, position) = query.get_single_mut().unwrap();
-  if timer.just_finished() && motion.is_changed() && !motion.airborne_status.is_airborne() {
+  let (mut willy, mut motion, position) = query.get_single_mut().unwrap();
+  if timer.just_finished() && motion.is_changed() && !willy.airborne_status.is_airborne() {
     let (cx, cy) = position.char_pos();
     let cavern_data = &data.caverns[cavern.cavern_number];
     if !cavern_data.get_tile_type((cx, cy + 2)).can_stand() && !cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
       println!("Detected drop while not airborne at {:?}", (cx, cy));
-      motion.airborne_status = AirborneStatus::FallingSafeToLand;
-      motion.jump_counter = 8;
+      willy.airborne_status = AirborneStatus::FallingSafeToLand;
+      willy.jump_counter = 8;
       motion.walking = false;
     }
   }
@@ -367,7 +305,7 @@ fn check_drop(
 fn check_landing(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
-  mut query: Query<(&mut WillyMotion, &Position), Has<WillyMotion>>,
+  mut query: Query<(&mut Willy, &Position), Has<Willy>>,
 ) {
   let (mut motion, position) = query.get_single_mut().unwrap();
   if motion.is_changed() && motion.airborne_status.is_falling() {
@@ -401,18 +339,18 @@ fn listen_for_debug(mut event_reader: EventReader<DebugStateToggled>, mut state:
 fn update_debug_info(
   mut debug_text: ResMut<DebugText>,
   query: Query<
-    (&WillyMotion, &Position, &WillySprites),
+    (&Willy, &Position),
     (
-      With<WillyMotion>,
-      Or<(Changed<WillyMotion>, Changed<Position>)>,
+      With<Willy>,
+      Or<(Changed<Willy>, Changed<Position>)>,
     ),
   >,
 ) {
   if query.get_single().is_ok() {
-    let (motion, position, sprites) = query.get_single().unwrap();
+    let (motion, position) = query.get_single().unwrap();
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
-    debug_text.line2 = format!("{:?} S:{}", motion.airborne_status, sprites.current_frame);
+    debug_text.line2 = format!("{:?}", motion.airborne_status);
     debug_text.line3 = format!("can move: L: {:?} R: {:?}", motion.can_move_left, motion.can_move_right);
   }
 }
@@ -424,7 +362,7 @@ fn draw_debug_overlay(
   query: Query<
     &Position,
     (
-      With<WillyMotion>,
+      With<Willy>,
     ),
   >,
 ) {

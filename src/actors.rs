@@ -53,6 +53,14 @@ impl HorizontalMotion {
       }
     };
   }
+
+  pub fn set_direction(&mut self, direction: Direction) {
+    let current_direction = self.direction();
+    if current_direction != direction {
+      self.change_direction();
+    }
+  }
+
 }
 
 // If value is < lb, then clamp it to ub.
