@@ -9,6 +9,7 @@ pub struct Cavern {
   pub name: String,
   pub tile_bitmaps: Vec<Bitmap>,
   pub border_color: Attributes,
+  pub portal: Portal,
   pub guardians: Vec<Guardian>,
   pub guardian_bitmaps: Vec<Bitmap>,
 }
@@ -99,6 +100,8 @@ impl TryFrom<&[u8]> for Cavern {
 
     let border_color = Attributes::try_from(bytes[627])?;
 
+    let portal: Portal = Portal::try_from(&bytes[655..692])?;
+
     // Read the guardians, starting at offset 702.
     let mut guardians = Vec::with_capacity(4);
     let mut offset = 702;
@@ -121,8 +124,9 @@ impl TryFrom<&[u8]> for Cavern {
       name,
       tile_bitmaps,
       border_color,
+      portal,
       guardians,
-      guardian_bitmaps
+      guardian_bitmaps,
     })
   }
 }
@@ -180,14 +184,17 @@ impl TryFrom<&[u8]> for Guardian {
       GuardianSpeed::Fast
     };
 
-    let mut attributes : Attributes = (guardian_data[0] & 0b01111111).into();
+    let mut attributes: Attributes = (guardian_data[0] & 0b01111111).into();
     attributes.transparent_background = true;
 
-    let encoded_pos: u32 = guardian_data[1] as u32 |
-      ((guardian_data[2] as u32) << 8) |
-      ((guardian_data[3] as u32) << 16);
+    let encoded_pos: u32 = guardian_data[1] as u32
+      | ((guardian_data[2] as u32) << 8)
+      | ((guardian_data[3] as u32) << 16);
 
-    println!("data1:     {:08b}{:08b}{:08b}", guardian_data[3], guardian_data[2], guardian_data[1]);
+    println!(
+      "data1:     {:08b}{:08b}{:08b}",
+      guardian_data[3], guardian_data[2], guardian_data[1]
+    );
     println!("pos flags: {:024b}", encoded_pos);
 
     let x = (encoded_pos & 0b11111) as u8;
@@ -204,14 +211,41 @@ impl TryFrom<&[u8]> for Guardian {
       first_animation_frame,
       left_bound,
       right_bound,
-      speed
+      speed,
     })
-
   }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum GuardianSpeed {
   Normal,
-  Fast
+  Fast,
+}
+
+#[derive(Debug)]
+pub struct Portal {
+  pub attributes: Attributes,
+  pub bitmap: Bitmap,
+  pub position: (u8, u8),
+}
+
+impl TryFrom<&[u8]> for Portal {
+  type Error = anyhow::Error;
+
+  fn try_from(data: &[u8]) -> Result<Portal> {
+    anyhow::ensure!(data.len() == 37, "Expected 37 bytes");
+
+    let attributes: Attributes = data[0].into();
+    let bitmap = Bitmap::create(16, 16, &data[1..33]);
+
+    let pos = (data[34] as u16) << 8 | data[33] as u16;
+    let x = (pos & 0b11111) as u8;
+    let y = ((pos & 0b111100000) >> 5) as u8;
+
+    Ok(Portal {
+      attributes,
+      bitmap,
+      position: (x, y)
+    })
+  }
 }

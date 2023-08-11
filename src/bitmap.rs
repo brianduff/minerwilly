@@ -8,7 +8,7 @@ use bevy::{
 /// and an optional SpectrumColor (attribute data). It can be
 /// converted into an image, and the attributes can be changed
 /// at that time.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bitmap {
   data: Vec<u8>,
   width: usize,

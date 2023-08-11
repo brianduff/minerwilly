@@ -55,6 +55,16 @@ impl Attributes {
     }
   }
 
+  /// A new Attributes that has the ink and paper colors inverted.
+  pub fn inverse(&self) -> Self {
+    Attributes {
+      ink: self.paper,
+      paper: self.ink,
+      bright: self.bright,
+      transparent_background: self.transparent_background
+    }
+  }
+
   pub fn new_transparent_bg(ink: ColorName, bright: bool) -> Self {
     Attributes {
       ink: ink.into(),
