@@ -286,7 +286,7 @@ fn decode_packed_position(bytes: &[u8]) -> (u8, u8) {
   (x, y)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Item {
   pub attributes: Attributes,
   pub position: (u8, u8),

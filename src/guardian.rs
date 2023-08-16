@@ -4,7 +4,7 @@ use crate::{
   actors::{Actor, Direction, HorizontalMotion, Sprites, update_actor_sprite},
   cavern::Cavern,
   gamedata::{cavern, GameDataResource},
-  position::{Layer, Position}, timer::GameTimer,
+  position::{Layer, Position}, timer::GameTimer, despawn_on_cavern_change,
 };
 
 pub struct GuardianPlugin;
@@ -13,6 +13,7 @@ impl Plugin for GuardianPlugin {
   fn build(&self, app: &mut App) {
     // app.add_systems(Startup, init);
     app.add_systems(Update, (
+      despawn_on_cavern_change::<Guardian>,
       spawn_guardians,
       update_actor_sprite::<Guardian>,
       move_guardians,
@@ -29,18 +30,11 @@ pub struct Guardian {
 
 fn spawn_guardians(
   mut commands: Commands,
-  query: Query<Entity, With<Guardian>>,
   cavern: ResMut<Cavern>,
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
 ) {
   if cavern.is_changed() {
-
-    // Despawn old entities
-    for entity in query.iter() {
-      commands.entity(entity).despawn();
-    }
-
     let cavern_data = &game_data.caverns[cavern.cavern_number];
 
     // Create images for guardian sprites.

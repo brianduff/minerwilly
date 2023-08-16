@@ -1,6 +1,6 @@
 use bevy::{prelude::*, sprite::Anchor};
 
-use crate::{position::{Position, Layer}, cavern::Cavern, gamedata::{GameDataResource, self}, timer::GameTimer};
+use crate::{position::{Position, Layer}, cavern::Cavern, gamedata::{GameDataResource, self}, timer::GameTimer, despawn_on_cavern_change};
 
 /// The number of timer ticks between flashes of the portal.
 const TICKS_PER_FLASH: usize = 4;
@@ -9,7 +9,7 @@ pub struct PortalPlugin;
 
 impl Plugin for PortalPlugin {
   fn build(&self, app: &mut bevy::prelude::App) {
-    app.add_systems(Update, (spawn_portal, check_debug_keyboard, flash_if_unlocked));
+    app.add_systems(Update, (despawn_on_cavern_change::<Portal>, spawn_portal, check_debug_keyboard, flash_if_unlocked));
   }
 }
 
@@ -26,16 +26,10 @@ pub struct Portal {
 
 fn spawn_portal(
     mut commands: Commands,
-    query: Query<Entity, With<Portal>>,
     cavern: ResMut<Cavern>,
     game_data: Res<GameDataResource>,
     images: ResMut<Assets<Image>>) {
   if cavern.is_changed() {
-    // Despawn the old portal.
-    for portal in query.iter() {
-      commands.entity(portal).despawn();
-    }
-
     let portal_data = &game_data.caverns[cavern.cavern_number].portal;
 
     // todo: don't splat this sprite code all over the place

@@ -1,10 +1,11 @@
 use air::AirPlugin;
 use anyhow::Result;
 use bevy::prelude::*;
-use cavern::CavernPlugin;
+use cavern::{CavernPlugin, Cavern};
 use debug::DebugPlugin;
 use gamedata::GameDataPlugin;
 use guardian::GuardianPlugin;
+use item::ItemPlugin;
 use lives::LivesPlugin;
 use portal::PortalPlugin;
 use score::ScorePlugin;
@@ -18,6 +19,7 @@ mod bitmap;
 mod cavern;
 mod color;
 mod debug;
+mod item;
 mod gamedata;
 mod guardian;
 mod lives;
@@ -78,6 +80,7 @@ fn main() -> Result<()> {
       LivesPlugin,
       GuardianPlugin,
       PortalPlugin,
+      ItemPlugin
     ))
     .add_systems(PostStartup, setup)
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
@@ -88,4 +91,18 @@ fn main() -> Result<()> {
 
 fn setup(mut commands: Commands) {
   commands.spawn(Camera2dBundle::default());
+}
+
+
+/// Despawns all entities with a given component type on a cavern change.
+pub fn despawn_on_cavern_change<T: Component>(
+  mut commands: Commands,
+  query: Query<Entity, With<T>>,
+  cavern: ResMut<Cavern>
+) {
+  if cavern.is_changed() {
+    for entity in query.iter() {
+      commands.entity(entity).despawn();
+    }
+  }
 }

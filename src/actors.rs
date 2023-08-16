@@ -26,6 +26,13 @@ impl HorizontalMotion {
     }
   }
 
+  pub fn frozen() -> Self {
+    Self {
+      walking: false,
+      current_frame: 0
+    }
+  }
+
   pub fn step(&mut self, pos: &mut Position) {
     let direction = self.direction();
     pos.step(direction);
