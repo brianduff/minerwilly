@@ -106,3 +106,26 @@ pub fn despawn_on_cavern_change<T: Component>(
     }
   }
 }
+
+// If value is < lb, then clamp it to ub.
+// If value is > ub, then clamp it to lb.
+//
+// E.g. clamp(x, 0, 3) when x = -1, x becomes 3
+//      clamp(x, 0, 3) when x = 4, x becomes 0
+pub fn clamp(value: &mut usize, lb: usize, ub: usize) {
+  if *value < lb {
+    *value = ub;
+  } else if *value > ub {
+    *value = lb;
+  }
+}
+
+pub fn clamp2(value: usize, lb: usize, ub: usize) -> usize {
+  if value < lb {
+    return ub;
+  } else if value > ub {
+    return lb;
+  }
+
+  value
+}

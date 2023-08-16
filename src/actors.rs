@@ -1,6 +1,6 @@
 use bevy::{prelude::*, sprite::Anchor};
 
-use crate::position::Position;
+use crate::{position::Position, clamp};
 
 /// General stuff that applies to either willy
 /// or guardians (i.e. actors)
@@ -70,18 +70,6 @@ impl HorizontalMotion {
 
 }
 
-// If value is < lb, then clamp it to ub.
-// If value is > ub, then clamp it to lb.
-//
-// E.g. clamp(x, 0, 3) when x = -1, x becomes 3
-//      clamp(x, 0, 3) when x = 4, x becomes 0
-fn clamp(value: &mut usize, lb: usize, ub: usize) {
-  if *value < lb {
-    *value = ub;
-  } else if *value > ub {
-    *value = lb;
-  }
-}
 
 #[derive(Component)]
 pub struct Sprites {
@@ -131,7 +119,7 @@ pub fn update_actor_sprite<T: Component>(mut query: Query<(
   &mut Transform
 ), (
   With<T>,
-  Or<(Changed<Position>, Changed<Sprites>)>
+  Or<(Changed<Position>, Changed<Sprites>, Changed<HorizontalMotion>)>
 )>) {
 
   for (pos, motion, sprites, mut image, mut transform) in query.iter_mut() {

@@ -17,7 +17,7 @@ pub struct Attributes {
   pub transparent_background: bool,
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum ColorName {
   #[default]
   Black,
@@ -41,6 +41,22 @@ impl From<ColorName> for u8 {
       ColorName::Cyan => 5,
       ColorName::Yellow => 6,
       ColorName::White => 7,
+    }
+  }
+}
+
+impl From<u8> for ColorName {
+  fn from (value: u8) -> Self {
+    match value {
+      0 => ColorName::Black,
+      1 => ColorName::Blue,
+      2 => ColorName::Red,
+      3 => ColorName::Magenta,
+      4 => ColorName::Green,
+      5 => ColorName::Cyan,
+      6 => ColorName::Yellow,
+      7 => ColorName::White,
+      _ => ColorName::Black   // !!!
     }
   }
 }
@@ -117,6 +133,10 @@ impl Attributes {
 
   pub fn paper_color(&self) -> Color {
     convert_color(&self.paper_rgba())
+  }
+
+  pub fn ink_color_name(&self) -> ColorName {
+    self.ink.into()
   }
 }
 
