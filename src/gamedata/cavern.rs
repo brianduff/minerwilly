@@ -23,7 +23,9 @@ pub struct Cavern {
   pub portal: Portal,
   pub guardians: Vec<Guardian>,
   pub guardian_bitmaps: Vec<Bitmap>,
-  pub special_behaviors: HashSet<SpecialBehavior>
+  pub special_behaviors: HashSet<SpecialBehavior>,
+  pub items: Vec<Item>,
+  pub item_bitmap: Bitmap
 }
 
 /// There are eight types of cavern tiles.
@@ -137,6 +139,19 @@ impl TryFrom<&[u8]> for Cavern {
       offset += 32;
     }
 
+    // Read items, starting at offset 629.
+    // TODO: generalize this "reading a list of things" sequence.
+    let mut items = Vec::with_capacity(5);
+    let mut offset = 629;
+
+    while bytes[offset] != 255 {
+      items.push(bytes[offset..offset + 5].into());
+      offset += 5;
+    }
+
+
+    let item_bitmap = Bitmap::create(8, 8, &bytes[692..=699]);
+
     Ok(Cavern {
       layout,
       name,
@@ -145,7 +160,9 @@ impl TryFrom<&[u8]> for Cavern {
       portal,
       guardians,
       guardian_bitmaps,
-      special_behaviors: HashSet::new()
+      special_behaviors: HashSet::new(),
+      items,
+      item_bitmap
     })
   }
 }
@@ -251,14 +268,35 @@ impl TryFrom<&[u8]> for Portal {
     let attributes: Attributes = data[0].into();
     let bitmap = Bitmap::create(16, 16, &data[1..33]);
 
-    let pos = (data[34] as u16) << 8 | data[33] as u16;
-    let x = (pos & 0b11111) as u8;
-    let y = ((pos & 0b111100000) >> 5) as u8;
+    let position = decode_packed_position(&data[33..=34]);
 
     Ok(Portal {
       attributes,
       bitmap,
-      position: (x, y)
+      position
     })
+  }
+}
+
+fn decode_packed_position(bytes: &[u8]) -> (u8, u8) {
+  let pos = (bytes[1] as u16) << 8 | bytes[0] as u16;
+  let x = (pos & 0b11111) as u8;
+  let y = ((pos & 0b111100000) >> 5) as u8;
+
+  (x, y)
+}
+
+#[derive(Debug)]
+pub struct Item {
+  pub attributes: Attributes,
+  pub position: (u8, u8),
+}
+
+impl From<&[u8]> for Item {
+  fn from(data: &[u8]) -> Item {
+    Item {
+      attributes: data[0].into(),
+      position: decode_packed_position(&data[1..=2])
+    }
   }
 }
