@@ -7,7 +7,7 @@ use crate::{
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
   position::{Layer, Position, vec2},
-  SCALE, timer::GameTimer,
+  SCALE, timer::GameTimer, item::Item,
 };
 
 static JUMP_DELTAS: [f32; 16] = [
@@ -26,7 +26,7 @@ impl Plugin for WillyPlugin {
         check_keyboard,
         move_willy,
         update_actor_sprite::<Willy>,
-        check_nasty_collisions,
+        check_collisions,
         check_drop,
         check_landing,
         listen_for_debug,
@@ -395,14 +395,15 @@ fn draw_debug_overlay(
 }
 
 
-/// Checks for collisions with nasties.
-fn check_nasty_collisions(
+/// Checks for collisions.
+fn check_collisions(
   data: Res<GameDataResource>,
   cavern: Res<Cavern>,
-  query: Query<&Position, (With<Willy>, Changed<Position>)>
+  willy_position_query: Query<&Position, (With<Willy>, Changed<Position>)>,
+  mut item_query: Query<(&mut Item, &Position)>
 ) {
-  if !query.is_empty() {
-    let (px, py) = query.get_single().unwrap().char_pos();
+  if !willy_position_query.is_empty() {
+    let (px, py) = willy_position_query.get_single().unwrap().char_pos();
 
     let cavern = &data.caverns[cavern.cavern_number];
 
@@ -413,6 +414,15 @@ fn check_nasty_collisions(
         if cavern.get_tile_type((x, y)).is_nasty() {
           println!("Collided with NASTY at {:?}", (x, y));
         }
+
+        // Did we intersect an item?
+        for (mut item, pos) in item_query.iter_mut() {
+          if pos.char_pos() == (x, y) && !item.collected {
+            item.collected = true;
+            println!("Collided with ITEM at {:?}", (x, y))
+          }
+        }
+
       }
     }
   }

@@ -11,13 +11,15 @@ impl Plugin for ItemPlugin {
       despawn_on_cavern_change::<Item>,
       spawn_items,
       cycle_items,
+      despawn_when_collected,
     ).chain());
   }
 }
 
 #[derive(Component, Debug)]
-struct Item {
+pub struct Item {
   data: cavern::Item,
+  pub collected: bool
 }
 
 fn spawn_items(
@@ -36,7 +38,8 @@ fn spawn_items(
 
       commands.spawn(Actor::new(
         Item {
-          data: *item
+          data: *item,
+          collected: false
         },
         Position::at_char_pos(crate::position::Layer::Items, item.position),
         Sprites {
@@ -82,6 +85,14 @@ fn create_cycle_images(bitmap: &Bitmap, initial_color: &Attributes) -> Vec<Image
   }
 
   images
+}
+
+fn despawn_when_collected(mut commands: Commands, query: Query<(&Item, Entity), Changed<Item>>) {
+  for (item, entity) in query.iter() {
+    if item.collected {
+      commands.entity(entity).despawn();
+    }
+  }
 }
 
 /// The sequence of ink colors that items animate through.
