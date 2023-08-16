@@ -39,12 +39,10 @@ impl HorizontalMotion {
 
     match direction {
       Direction::Left => {
-        self.current_frame -= 1;
-        clamp(&mut self.current_frame, 4, 7);
+        self.current_frame = clamp(self.current_frame - 1, 4, 7);
       },
       Direction::Right => {
-        self.current_frame += 1;
-        clamp(&mut self.current_frame, 0, 3);
+        self.current_frame = clamp(self.current_frame + 1, 0, 3);
       }
     };
 

@@ -13,10 +13,11 @@ fn new_transform() -> Transform {
 pub enum Layer {
   //Background = 0,
   Tiles = 0,
-  Characters = 1,
-  Portal = 2,
+  Items = 1,
+  Characters = 2,
+  Portal = 3,
   // For HUD etc.
-  Debug = 3,
+  Debug = 4,
 }
 
 /// Represents a position on screen.
