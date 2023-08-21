@@ -29,7 +29,7 @@ pub struct Cavern {
 }
 
 /// There are eight types of cavern tiles.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum CavernTileType {
   Background = 0,
   Floor = 1,
@@ -78,9 +78,9 @@ impl CavernTileType {
 }
 
 impl Cavern {
-  pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
-    self.get_bg_sprite_index(pos).unwrap_or(0).into()
-  }
+  // pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
+  //   self.get_bg_sprite_index(pos).unwrap_or(0).into()
+  // }
 
   pub fn get_bg_sprite_index(&self, (char_x, char_y): (u8, u8)) -> Option<usize> {
     let color = self.layout.get_cell_color(char_x, char_y);

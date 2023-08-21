@@ -1,4 +1,5 @@
 use crate::color::ColorName;
+use crate::gamedata::cavern::CavernTileType;
 use crate::position::{Layer, Position};
 use crate::{
   gamedata::GameDataResource,
@@ -17,7 +18,25 @@ pub struct Cavern {
 }
 
 #[derive(Component, Debug)]
-struct CavernTile;
+struct CavernTile; // {
+  // If this is a crumbling tile, this number from 0-7 represents the current animation
+  // frame of the tile crumble sequence. Once this reaches 0, the tile is replaced with
+  // a background tile.
+//  crumble_level: u8
+//}
+
+/// The current state of the cavern. This can be used by other plugins to query information
+/// about the tiles surrounding Willy.
+#[derive(Resource, Debug)]
+pub struct CavernState {
+  tile_types: [[CavernTileType; 16]; 32]
+}
+
+impl CavernState {
+  pub fn get_tile_type(&self, (x, y): (u8, u8)) -> CavernTileType {
+    self.tile_types[x as usize][y as usize]
+  }
+}
 
 #[derive(Component)]
 struct CavernName;
@@ -32,6 +51,7 @@ impl Plugin for CavernPlugin {
         update_cavern_name,
         spawn_cavern.pipe(handle_errors),
         check_debug_keyboard,
+        update_tile_state,
       ),
     );
   }
@@ -39,6 +59,9 @@ impl Plugin for CavernPlugin {
 
 fn setup(mut commands: Commands) {
   commands.insert_resource(Cavern { cavern_number: 0 });
+  commands.insert_resource(CavernState {
+    tile_types: [[CavernTileType::Background; 16]; 32]
+  });
 
   // Spawn the cavern name
   commands.spawn((
@@ -127,5 +150,22 @@ fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut cavern: ResMut<Cavern>) {
     cavern.cavern_number += 1;
   } else if keys.just_released(KeyCode::BracketLeft) && cavern.cavern_number > 0 {
     cavern.cavern_number -= 1;
+  }
+}
+
+fn update_tile_state(mut cavern_state: ResMut<CavernState>,
+  cavern: Res<Cavern>, game_data: Res<GameDataResource>,
+) {
+  if cavern.is_changed() {
+    let current_cavern = cavern.cavern_number;
+    let cavern = &game_data.caverns[current_cavern];
+
+    for y in 0..16 {
+      for x in 0..32 {
+        cavern_state.tile_types[x][y] = cavern
+            .get_bg_sprite_index((x as u8, y as u8))
+            .unwrap_or(0).into();
+      }
+    }
   }
 }

@@ -2,7 +2,7 @@ use bevy::{ecs::query::Has, prelude::*};
 
 use crate::{
   actors::{Direction, Actor, Sprites, HorizontalMotion, update_actor_sprite},
-  cavern::Cavern,
+  cavern::{Cavern, CavernState},
   color::{Attributes, ColorName},
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
@@ -248,8 +248,7 @@ const RIGHT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::P];
 // fields of WillyMotion.
 #[allow(clippy::type_complexity)]
 fn check_wall_collision(
-  data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern_state: Res<CavernState>,
   mut query: Query<
     (&Position, &mut Willy),
     (
@@ -261,22 +260,20 @@ fn check_wall_collision(
   if query.get_single().is_ok() {
     let (position, mut motion) = query.get_single_mut().unwrap();
 
-    let cavern_data = &data.caverns[cavern.cavern_number];
-
     let (curx, cury) = position.char_pos();
 
     motion.can_move_left = !matches!(
-      cavern_data.get_tile_type((curx - 1, cury)),
+      cavern_state.get_tile_type((curx - 1, cury)),
       CavernTileType::Wall
     ) && !matches!(
-      cavern_data.get_tile_type((curx - 1, cury + 1)),
+      cavern_state.get_tile_type((curx - 1, cury + 1)),
       CavernTileType::Wall
     );
     motion.can_move_right = !matches!(
-      cavern_data.get_tile_type((curx + 2, cury)),
+      cavern_state.get_tile_type((curx + 2, cury)),
       CavernTileType::Wall
     ) && !matches!(
-      cavern_data.get_tile_type((curx + 2, cury + 1)),
+      cavern_state.get_tile_type((curx + 2, cury + 1)),
       CavernTileType::Wall
     );
   }
@@ -284,16 +281,14 @@ fn check_wall_collision(
 
 // Check if Willy should drop
 fn check_drop(
-  data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern_state: Res<CavernState>,
   timer: Res<GameTimer>,
   mut query: Query<(&mut Willy, &mut HorizontalMotion, &Position), Has<Willy>>,
 ) {
   let (mut willy, mut motion, position) = query.get_single_mut().unwrap();
   if timer.just_finished() && motion.is_changed() && !willy.airborne_status.is_airborne() {
     let (cx, cy) = position.char_pos();
-    let cavern_data = &data.caverns[cavern.cavern_number];
-    if !cavern_data.get_tile_type((cx, cy + 2)).can_stand() && !cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
+    if !cavern_state.get_tile_type((cx, cy + 2)).can_stand() && !cavern_state.get_tile_type((cx + 1, cy + 2)).can_stand() {
       println!("Detected drop while not airborne at {:?}", (cx, cy));
       willy.airborne_status = AirborneStatus::FallingSafeToLand;
       willy.jump_counter = 8;
@@ -304,8 +299,7 @@ fn check_drop(
 
 // Check if willy has landed on something. Ideally a floor ;)
 fn check_landing(
-  data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern_state: Res<CavernState>,
   mut query: Query<(&mut Willy, &Position), Has<Willy>>,
 ) {
   let (mut motion, position) = query.get_single_mut().unwrap();
@@ -314,8 +308,7 @@ fn check_landing(
     if position.is_vertically_cell_aligned() {
       let (cx, cy) = position.char_pos();
       // Is the tile under willy's feet something he can stand on?
-      let cavern_data = &data.caverns[cavern.cavern_number];
-      if cavern_data.get_tile_type((cx, cy + 2)).can_stand() || cavern_data.get_tile_type((cx + 1, cy + 2)).can_stand() {
+      if cavern_state.get_tile_type((cx, cy + 2)).can_stand() || cavern_state.get_tile_type((cx + 1, cy + 2)).can_stand() {
 //        motion.walking = false;
         motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
       }
@@ -397,21 +390,18 @@ fn draw_debug_overlay(
 
 /// Checks for collisions.
 fn check_collisions(
-  data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern_state: Res<CavernState>,
   willy_position_query: Query<&Position, (With<Willy>, Changed<Position>)>,
   mut item_query: Query<(&mut Item, &Position)>
 ) {
   if !willy_position_query.is_empty() {
     let (px, py) = willy_position_query.get_single().unwrap().char_pos();
 
-    let cavern = &data.caverns[cavern.cavern_number];
-
     // If any of the four grid cells that contain Willy's sprite contain
     // a nasty, he has collided.
     for x in px..=px+1 {
       for y in py..=py+1 {
-        if cavern.get_tile_type((x, y)).is_nasty() {
+        if cavern_state.get_tile_type((x, y)).is_nasty() {
           println!("Collided with NASTY at {:?}", (x, y));
         }
 
@@ -427,3 +417,4 @@ fn check_collisions(
     }
   }
 }
+
