@@ -76,6 +76,27 @@ impl Bitmap {
       TextureFormat::Rgba8Unorm,
     )
   }
+
+  // Creates a new bitmap that's identical to this one, but with all the pixels
+  // shifted down by one row. The first row is filled with empty pixels, and the
+  // last row is discarded. This is used to create animations for crumbling
+  // tiles.
+  pub fn shift_down(&self) -> Self {
+    // The number of bytes we need to push in at the start depends on the width
+    // of the image.
+    let pushed_bytes = self.width / 8;
+
+    let mut new_data = Vec::with_capacity(self.data.len());
+    new_data.resize(pushed_bytes, 0);
+    new_data.extend_from_slice(&self.data[0..self.data.len() - pushed_bytes]);
+
+    Self {
+      data: new_data,
+      width: self.width,
+      height: self.height,
+      color: self.color
+    }
+  }
 }
 
 /// Given a byte of bitmap information and an ink and paper color in rgba,

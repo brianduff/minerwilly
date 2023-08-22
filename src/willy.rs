@@ -2,7 +2,7 @@ use bevy::{ecs::query::Has, prelude::*};
 
 use crate::{
   actors::{Direction, Actor, Sprites, HorizontalMotion, update_actor_sprite},
-  cavern::{Cavern, CavernState},
+  cavern::CavernState,
   color::{Attributes, ColorName},
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
@@ -39,8 +39,8 @@ impl Plugin for WillyPlugin {
 }
 
 #[derive(Component)]
-struct Willy {
-  airborne_status: AirborneStatus,
+pub struct Willy {
+  pub airborne_status: AirborneStatus,
   jump_counter: u8,
   can_move_left: bool,
   can_move_right: bool
@@ -58,7 +58,7 @@ impl Willy {
 /// Willy's airborne status.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 
-enum AirborneStatus {
+pub enum AirborneStatus {
   NotJumpingOrFalling,
   Jumping,
   FallingSafeToLand,
@@ -67,7 +67,7 @@ enum AirborneStatus {
 }
 
 impl AirborneStatus {
-  fn is_airborne(&self) -> bool {
+  pub fn is_airborne(&self) -> bool {
     !matches!(
       self,
       AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided
@@ -286,10 +286,9 @@ fn check_drop(
   mut query: Query<(&mut Willy, &mut HorizontalMotion, &Position), Has<Willy>>,
 ) {
   let (mut willy, mut motion, position) = query.get_single_mut().unwrap();
-  if timer.just_finished() && motion.is_changed() && !willy.airborne_status.is_airborne() {
+  if timer.just_finished() && !willy.airborne_status.is_airborne() {
     let (cx, cy) = position.char_pos();
     if !cavern_state.get_tile_type((cx, cy + 2)).can_stand() && !cavern_state.get_tile_type((cx + 1, cy + 2)).can_stand() {
-      println!("Detected drop while not airborne at {:?}", (cx, cy));
       willy.airborne_status = AirborneStatus::FallingSafeToLand;
       willy.jump_counter = 8;
       motion.walking = false;
