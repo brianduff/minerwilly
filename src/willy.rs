@@ -6,7 +6,7 @@ use crate::{
   color::{Attributes, ColorName},
   debug::{DebugText, DebugStateToggled},
   gamedata::{cavern::CavernTileType, GameDataResource},
-  position::{Layer, Position, vec2},
+  position::{Layer, Position, vec2, Relative},
   SCALE, timer::GameTimer, item::Item,
 };
 
@@ -390,30 +390,27 @@ fn draw_debug_overlay(
 /// Checks for collisions.
 fn check_collisions(
   cavern_state: Res<CavernState>,
-  willy_position_query: Query<&Position, (With<Willy>, Changed<Position>)>,
+  position: Query<&Position, (With<Willy>, Changed<Position>)>,
   mut item_query: Query<(&mut Item, &Position)>
 ) {
-  if !willy_position_query.is_empty() {
-    let (px, py) = willy_position_query.get_single().unwrap().char_pos();
+  if !position.is_empty() {
+    let pos = position.get_single().unwrap();
 
     // If any of the four grid cells that contain Willy's sprite contain
     // a nasty, he has collided.
-    for x in px..=px+1 {
-      for y in py..=py+1 {
-        if cavern_state.get_tile_type((x, y)).is_nasty() {
-          println!("Collided with NASTY at {:?}", (x, y));
-        }
-
-        // Did we intersect an item?
-        for (mut item, pos) in item_query.iter_mut() {
-          if pos.char_pos() == (x, y) && !item.collected {
-            item.collected = true;
-            println!("Collided with ITEM at {:?}", (x, y))
-          }
-        }
-
+    for (x, y) in pos.relative(Relative::Inside) {
+      if cavern_state.get_tile_type((x, y)).is_nasty() {
+        println!("Collided with NASTY at {:?}", (x, y));
       }
+
+      // Did we intersect an item?
+      for (mut item, pos) in item_query.iter_mut() {
+        if pos.char_pos() == (x, y) && !item.collected {
+          item.collected = true;
+          println!("Collided with ITEM at {:?}", (x, y))
+        }
+      }
+
     }
   }
 }
-

@@ -137,6 +137,34 @@ impl Position {
     self
   }
 
+  // Produce a set of positions relative to this one in the given direction. This
+  // yields a (u8, u8) tuple.
+  pub fn relative(&self, kind: Relative) -> Vec<(u8, u8)> {
+    let (x, y) = self.char_pos();
+    let mut positions = Vec::with_capacity(2);
+    match kind {
+      Relative::Below => {
+        positions.push((x, y + 2));
+        positions.push((x + 1, y + 2));
+      },
+      Relative::Inside => {
+        positions.push((x, y));
+        positions.push((x + 1, y));
+        positions.push((x, y + 1));
+        positions.push((x + 1, y + 1));
+      }
+    }
+
+    positions
+  }
+
+}
+
+pub enum Relative {
+  /// Positions below the current position's cell
+  Below,
+  /// Positions inside the current position's cell
+  Inside,
 }
 
 /// Return a transform for this actor position. Note that the x

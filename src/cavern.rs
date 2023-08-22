@@ -1,7 +1,8 @@
 use crate::bitmap::Bitmap;
 use crate::color::ColorName;
+use crate::despawn_on_cavern_change;
 use crate::gamedata::cavern::CavernTileType;
-use crate::position::{Layer, Position};
+use crate::position::{Layer, Position, Relative};
 use crate::timer::GameTimer;
 use crate::willy::Willy;
 use crate::{
@@ -63,11 +64,11 @@ impl Plugin for CavernPlugin {
       (
         update_border,
         update_cavern_name,
-        spawn_cavern.pipe(handle_errors),
+        (despawn_on_cavern_change::<CavernTile>, spawn_cavern.pipe(handle_errors)).chain(),
         check_debug_keyboard,
         update_tile_state,
         update_crumble,
-        update_tile_sprites
+        update_tile_sprites,
       ),
     );
   }
@@ -143,14 +144,8 @@ fn spawn_cavern(
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
   mut crumbling_tiles: ResMut<CrumblingTileImages>,
-  tile_query: Query<Entity, With<CavernTile>>,
 ) -> Result<()> {
   if cavern.is_changed() {
-    // Despawn any existing cavern tiles.
-    tile_query.for_each(|entity| {
-      commands.entity(entity).despawn();
-    });
-
     let current_cavern = cavern.cavern_number;
     let cavern = &game_data.caverns[current_cavern];
 
@@ -218,20 +213,22 @@ fn update_tile_state(mut cavern_state: ResMut<CavernState>,
 // animation, update its sprite. If it exceeds the last animation
 // frame, change the tile type to Background so that Willy will fall.
 fn update_crumble(timer: Res<GameTimer>, mut cavern_state: ResMut<CavernState>,
-  query: Query<&Position, With<Willy>>,
+  query: Query<(&Position, &Willy)>,
 ) {
   if timer.just_finished() {
-    for position in query.iter() {
-      let (cx, mut cy) = position.char_pos();
-      cy += 2;
-
-      if matches!(cavern_state.get_tile_type((cx, cy)), CavernTileType::CrumblingFloor) {
-        let level = cavern_state.crumble_level[cx as usize][cy as usize];
-        if level == 0 {
-          cavern_state.tile_types[cx as usize][cy as usize] = CavernTileType::Background;
-        } else {
-          cavern_state.crumble_level[cx as usize][cy as usize] -= 1;
+    for (position, willy) in query.iter() {
+      if !willy.airborne_status.is_airborne() {
+        for (cx, cy) in position.relative(Relative::Below) {
+          if matches!(cavern_state.get_tile_type((cx, cy)), CavernTileType::CrumblingFloor) {
+            let level = cavern_state.crumble_level[cx as usize][cy as usize];
+            if level == 0 {
+              cavern_state.tile_types[cx as usize][cy as usize] = CavernTileType::Background;
+            } else {
+              cavern_state.crumble_level[cx as usize][cy as usize] -= 1;
+            }
+          }
         }
+
       }
     }
   }
