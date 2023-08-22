@@ -13,8 +13,7 @@ impl Plugin for GuardianPlugin {
   fn build(&self, app: &mut App) {
     // app.add_systems(Startup, init);
     app.add_systems(Update, (
-      despawn_on_cavern_change::<Guardian>,
-      spawn_guardians,
+      (despawn_on_cavern_change::<Guardian>, spawn_guardians).chain(),
       update_actor_sprite::<Guardian>,
       move_guardians,
       change_direction

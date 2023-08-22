@@ -8,8 +8,7 @@ impl Plugin for ItemPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Update, (
       update_actor_sprite::<Item>,
-      despawn_on_cavern_change::<Item>,
-      spawn_items,
+      (despawn_on_cavern_change::<Item>, spawn_items).chain(),
       cycle_items,
       despawn_when_collected,
     ).chain());

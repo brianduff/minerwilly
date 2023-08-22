@@ -9,7 +9,7 @@ pub struct PortalPlugin;
 
 impl Plugin for PortalPlugin {
   fn build(&self, app: &mut bevy::prelude::App) {
-    app.add_systems(Update, (despawn_on_cavern_change::<Portal>, spawn_portal, check_debug_keyboard, flash_if_unlocked));
+    app.add_systems(Update, ((despawn_on_cavern_change::<Portal>, spawn_portal).chain(), check_debug_keyboard, flash_if_unlocked));
   }
 }
 
