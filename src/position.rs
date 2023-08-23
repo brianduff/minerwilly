@@ -152,6 +152,14 @@ impl Position {
         positions.push((x + 1, y));
         positions.push((x, y + 1));
         positions.push((x + 1, y + 1));
+      },
+      Relative::Left => {
+        positions.push((x - 1, y));
+        positions.push((x - 1, y + 1));
+      },
+      Relative::Right => {
+        positions.push((x + 2, y));
+        positions.push((x + 2, y + 1));
       }
     }
 
@@ -165,6 +173,10 @@ pub enum Relative {
   Below,
   /// Positions inside the current position's cell
   Inside,
+  /// Positions to the left of the current position's cell
+  Left,
+  /// Positions to the right
+  Right
 }
 
 /// Return a transform for this actor position. Note that the x

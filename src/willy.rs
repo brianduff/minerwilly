@@ -249,13 +249,15 @@ fn check_wall_collision(
 
     let (curx, cury) = position.char_pos();
 
-    motion.can_move_left = !matches!(
-      cavern_state.get_tile_type((curx - 1, cury)),
-      CavernTileType::Wall
-    ) && !matches!(
-      cavern_state.get_tile_type((curx - 1, cury + 1)),
-      CavernTileType::Wall
-    );
+    motion.can_move_left = !position.relative(Relative::Left).iter().map(|p| cavern_state.get_tile_type(*p)).any(|tt| matches!(tt, CavernTileType::Wall));
+
+    // motion.can_move_left = !matches!(
+    //   cavern_state.get_tile_type((curx - 1, cury)),
+    //   CavernTileType::Wall
+    // ) && !matches!(
+    //   cavern_state.get_tile_type((curx - 1, cury + 1)),
+    //   CavernTileType::Wall
+    // );
     motion.can_move_right = !matches!(
       cavern_state.get_tile_type((curx + 2, cury)),
       CavernTileType::Wall
