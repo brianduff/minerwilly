@@ -26,15 +26,6 @@ struct CavernTile {
   pos: (u8, u8)
 }
 
-impl CavernTile {
-  fn new(pos: (u8, u8)) -> Self {
-    Self {
-      pos
-    }
-  }
-}
-
-
 /// The current state of the cavern. This can be used by other plugins to query information
 /// about the tiles surrounding Willy.
 #[derive(Resource, Debug)]
@@ -50,6 +41,15 @@ impl CavernState {
 
   pub fn get_crumble_level(&self, (x, y): (u8, u8)) -> u8 {
     self.crumble_level[x as usize][y as usize]
+  }
+
+  pub fn is_type(&self, position: &Position, relative: Relative, kind: CavernTileType) -> bool {
+    position
+      .relative(relative)
+      .iter()
+      .map(|p| self.get_tile_type(*p))
+      .any(|tt| tt == kind)
+
   }
 }
 

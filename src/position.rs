@@ -139,10 +139,10 @@ impl Position {
 
   // Produce a set of positions relative to this one in the given direction. This
   // yields a (u8, u8) tuple.
-  pub fn relative(&self, kind: Relative) -> Vec<(u8, u8)> {
+  pub fn relative(&self, relative: Relative) -> Vec<(u8, u8)> {
     let (x, y) = self.char_pos();
     let mut positions = Vec::with_capacity(2);
-    match kind {
+    match relative {
       Relative::Below => {
         positions.push((x, y + 2));
         positions.push((x + 1, y + 2));

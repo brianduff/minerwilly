@@ -64,15 +64,15 @@ pub enum AirborneStatus {
   NotJumpingOrFalling,
   Jumping,
   FallingSafeToLand,
-  FallingUnsafeToLand,
-  Collided, // not sure if we need this
+  FallingUnsafeToLand
+  // Collided, // not sure if we need this
 }
 
 impl AirborneStatus {
   pub fn is_airborne(&self) -> bool {
     !matches!(
       self,
-      AirborneStatus::NotJumpingOrFalling | AirborneStatus::Collided
+      AirborneStatus::NotJumpingOrFalling // | AirborneStatus::Collided
     )
   }
 
@@ -247,24 +247,8 @@ fn check_wall_collision(
   if query.get_single().is_ok() {
     let (position, mut motion) = query.get_single_mut().unwrap();
 
-    let (curx, cury) = position.char_pos();
-
-    motion.can_move_left = !position.relative(Relative::Left).iter().map(|p| cavern_state.get_tile_type(*p)).any(|tt| matches!(tt, CavernTileType::Wall));
-
-    // motion.can_move_left = !matches!(
-    //   cavern_state.get_tile_type((curx - 1, cury)),
-    //   CavernTileType::Wall
-    // ) && !matches!(
-    //   cavern_state.get_tile_type((curx - 1, cury + 1)),
-    //   CavernTileType::Wall
-    // );
-    motion.can_move_right = !matches!(
-      cavern_state.get_tile_type((curx + 2, cury)),
-      CavernTileType::Wall
-    ) && !matches!(
-      cavern_state.get_tile_type((curx + 2, cury + 1)),
-      CavernTileType::Wall
-    );
+    motion.can_move_left = !cavern_state.is_type(position, Relative::Left, CavernTileType::Wall);
+    motion.can_move_right = !cavern_state.is_type(position, Relative::Right, CavernTileType::Wall);
   }
 }
 
@@ -275,7 +259,10 @@ fn check_drop(
   mut query: Query<(&mut Willy, &mut HorizontalMotion, &Position), Has<Willy>>,
 ) {
   let (mut willy, mut motion, position) = query.get_single_mut().unwrap();
-  if timer.just_finished() && !willy.airborne_status.is_airborne() && !can_stand(position, &cavern_state) {
+  if timer.just_finished()
+    && !willy.airborne_status.is_airborne()
+    && !can_stand(position, &cavern_state)
+  {
     willy.airborne_status = AirborneStatus::FallingSafeToLand;
     willy.jump_counter = 8;
     motion.walking = false;
@@ -291,18 +278,25 @@ fn check_landing(
   let (mut motion, position) = query.get_single_mut().unwrap();
 
   // TODO: there's a bug where we don't get some positions to check for a landing. Debug why?
-  if timer.just_finished() && motion.airborne_status.is_falling() && position.is_vertically_cell_aligned() {
-    println!("Can land at {:?}? {}", position.char_pos(), can_stand(position, &cavern_state));
+  if timer.just_finished()
+    && motion.airborne_status.is_falling()
+    && position.is_vertically_cell_aligned()
+  {
+    println!(
+      "Can land at {:?}? {}",
+      position.char_pos(),
+      can_stand(position, &cavern_state)
+    );
   }
 
-  if timer.just_finished() &&
-      motion.airborne_status.is_falling() &&
-      position.is_vertically_cell_aligned() &&
-      can_stand(position, &cavern_state) {
+  if timer.just_finished()
+    && motion.airborne_status.is_falling()
+    && position.is_vertically_cell_aligned()
+    && can_stand(position, &cavern_state)
+  {
     println!("Landed");
     motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
   }
-
 }
 
 fn can_stand(position: &Position, cavern_state: &CavernState) -> bool {

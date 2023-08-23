@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{gamedata::{cavern, GameDataResource}, cavern::Cavern, despawn_on_cavern_change, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp};
+use crate::{gamedata::GameDataResource, cavern::Cavern, despawn_on_cavern_change, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp};
 
 pub struct ItemPlugin;
 
@@ -17,7 +17,7 @@ impl Plugin for ItemPlugin {
 
 #[derive(Component, Debug)]
 pub struct Item {
-  data: cavern::Item,
+//  data: cavern::Item,
   pub collected: bool
 }
 
@@ -37,7 +37,7 @@ fn spawn_items(
 
       commands.spawn(Actor::new(
         Item {
-          data: *item,
+//          data: *item,
           collected: false
         },
         Position::at_char_pos(crate::position::Layer::Items, item.position),

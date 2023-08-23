@@ -1,17 +1,15 @@
-use std::collections::HashSet;
-
 use anyhow::Result;
 
 use crate::{bitmap::Bitmap, color::Attributes};
 
-#[derive(Debug)]
-pub enum SpecialBehavior {
-  SolarPower,
-  KongBeast,
-  VerticalGuardians,
-  SkylabVerticalGuardians,
-  Eugene
-}
+// #[derive(Debug)]
+// pub enum SpecialBehavior {
+//   SolarPower,
+//   KongBeast,
+//   VerticalGuardians,
+//   SkylabVerticalGuardians,
+//   Eugene
+// }
 
 // A cavern
 #[derive(Debug)]
@@ -23,13 +21,13 @@ pub struct Cavern {
   pub portal: Portal,
   pub guardians: Vec<Guardian>,
   pub guardian_bitmaps: Vec<Bitmap>,
-  pub special_behaviors: HashSet<SpecialBehavior>,
+  // pub special_behaviors: HashSet<SpecialBehavior>,
   pub items: Vec<Item>,
   pub item_bitmap: Bitmap
 }
 
 /// There are eight types of cavern tiles.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CavernTileType {
   Background = 0,
   Floor = 1,
@@ -160,7 +158,7 @@ impl TryFrom<&[u8]> for Cavern {
       portal,
       guardians,
       guardian_bitmaps,
-      special_behaviors: HashSet::new(),
+      // special_behaviors: HashSet::new(),
       items,
       item_bitmap
     })

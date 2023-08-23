@@ -23,7 +23,7 @@ impl Plugin for GuardianPlugin {
 
 #[derive(Component, Debug)]
 pub struct Guardian {
-  id: u8,
+//  id: u8,
   data: cavern::Guardian,
 }
 
@@ -38,7 +38,7 @@ fn spawn_guardians(
 
     // Create images for guardian sprites.
 
-    for (id, g) in cavern_data.guardians.iter().enumerate() {
+    for (_, g) in cavern_data.guardians.iter().enumerate() {
       let images: Vec<_> = cavern_data
         .guardian_bitmaps
         .iter()
@@ -61,7 +61,7 @@ fn spawn_guardians(
 
       commands.spawn(Actor::new(
         Guardian {
-          id: id as u8,
+//          id: id as u8,
           data: g.clone(),
         },
         position,
