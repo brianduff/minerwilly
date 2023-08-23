@@ -1,13 +1,15 @@
 use bevy::{ecs::query::Has, prelude::*};
 
 use crate::{
-  actors::{Direction, Actor, Sprites, HorizontalMotion, update_actor_sprite},
+  actors::{update_actor_sprite, Actor, Direction, HorizontalMotion, Sprites},
   cavern::CavernState,
   color::{Attributes, ColorName},
-  debug::{DebugText, DebugStateToggled},
+  debug::{DebugStateToggled, DebugText},
   gamedata::{cavern::CavernTileType, GameDataResource},
-  position::{Layer, Position, vec2, Relative},
-  SCALE, timer::GameTimer, item::Item,
+  item::Item,
+  position::{vec2, Layer, Position, Relative},
+  timer::GameTimer,
+  SCALE,
 };
 
 static JUMP_DELTAS: [f32; 16] = [
@@ -43,14 +45,14 @@ pub struct Willy {
   pub airborne_status: AirborneStatus,
   jump_counter: u8,
   can_move_left: bool,
-  can_move_right: bool
+  can_move_right: bool,
 }
 
 impl Willy {
   fn can_move(&self, direction: Direction) -> bool {
     match direction {
       Direction::Left => self.can_move_left,
-      Direction::Right => self.can_move_right
+      Direction::Right => self.can_move_right,
     }
   }
 }
@@ -75,7 +77,10 @@ impl AirborneStatus {
   }
 
   fn is_falling(&self) -> bool {
-    matches!(self, AirborneStatus::FallingSafeToLand | AirborneStatus::FallingUnsafeToLand)
+    matches!(
+      self,
+      AirborneStatus::FallingSafeToLand | AirborneStatus::FallingUnsafeToLand
+    )
   }
 }
 
@@ -83,7 +88,7 @@ impl AirborneStatus {
 struct KeyboardState {
   left_pressed: bool,
   right_pressed: bool,
-  jump_pressed: bool
+  jump_pressed: bool,
 }
 
 fn setup(
@@ -107,38 +112,29 @@ fn setup(
       airborne_status: AirborneStatus::NotJumpingOrFalling,
       jump_counter: 0,
       can_move_left: true,
-      can_move_right: true
+      can_move_right: true,
     },
     willy_pos,
-    Sprites {
-      images
-    },
+    Sprites { images },
     HorizontalMotion {
       walking: false,
-      current_frame: 0
-    }
+      current_frame: 0,
+    },
   ));
 
   commands.insert_resource(KeyboardState::default());
-  commands.insert_resource(DebugState { show_debug_info: true });
-
+  commands.insert_resource(DebugState {
+    show_debug_info: true,
+  });
 }
 
 #[allow(clippy::type_complexity)]
 fn move_willy(
   timer: Res<GameTimer>,
   keys: ResMut<KeyboardState>,
-  mut query: Query<
-    (
-      &mut Position,
-      &mut Willy,
-      &mut HorizontalMotion,
-    ),
-    With<Willy>,
-  >,
+  mut query: Query<(&mut Position, &mut Willy, &mut HorizontalMotion), With<Willy>>,
 ) {
-  let (mut position, mut willy, mut motion) =
-    query.single_mut();
+  let (mut position, mut willy, mut motion) = query.single_mut();
 
   if timer.just_finished() {
     if keys.jump_pressed && !&willy.airborne_status.is_airborne() {
@@ -147,7 +143,6 @@ fn move_willy(
     }
 
     if !&willy.airborne_status.is_airborne() {
-
       // TODO: clean this up - wtf?
 
       // If no key is pressed, we're not walking.
@@ -184,10 +179,12 @@ fn move_willy(
     }
 
     // Stop moving if we've hit a wall.
-    if motion.walking && position.will_change_cell(motion.direction()) && !willy.can_move(motion.direction())  {
+    if motion.walking
+      && position.will_change_cell(motion.direction())
+      && !willy.can_move(motion.direction())
+    {
       motion.walking = false;
     }
-
 
     // First, check if we're airborne. In this case, we move the y-coordinate of
     // willy, and increment the jump animation counter.
@@ -221,14 +218,10 @@ fn move_willy(
   }
 }
 
-fn check_keyboard(
-  keys: Res<Input<KeyCode>>,
-  mut keyboard_state: ResMut<KeyboardState>) {
-
+fn check_keyboard(keys: Res<Input<KeyCode>>, mut keyboard_state: ResMut<KeyboardState>) {
   keyboard_state.left_pressed = pressed(&keys, &LEFT_KEYS);
   keyboard_state.right_pressed = pressed(&keys, &RIGHT_KEYS);
   keyboard_state.jump_pressed = pressed(&keys, &[KeyCode::Space]);
-
 }
 
 fn pressed(keys: &Res<'_, Input<KeyCode>>, expected: &[KeyCode]) -> bool {
@@ -249,13 +242,7 @@ const RIGHT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::P];
 #[allow(clippy::type_complexity)]
 fn check_wall_collision(
   cavern_state: Res<CavernState>,
-  mut query: Query<
-    (&Position, &mut Willy),
-    (
-      With<Willy>,
-      Or<(Changed<Willy>, Changed<Position>)>,
-    ),
-  >,
+  mut query: Query<(&Position, &mut Willy), (With<Willy>, Or<(Changed<Willy>, Changed<Position>)>)>,
 ) {
   if query.get_single().is_ok() {
     let (position, mut motion) = query.get_single_mut().unwrap();
@@ -286,65 +273,73 @@ fn check_drop(
   mut query: Query<(&mut Willy, &mut HorizontalMotion, &Position), Has<Willy>>,
 ) {
   let (mut willy, mut motion, position) = query.get_single_mut().unwrap();
-  if timer.just_finished() && !willy.airborne_status.is_airborne() {
-    let (cx, cy) = position.char_pos();
-    if !cavern_state.get_tile_type((cx, cy + 2)).can_stand() && !cavern_state.get_tile_type((cx + 1, cy + 2)).can_stand() {
-      willy.airborne_status = AirborneStatus::FallingSafeToLand;
-      willy.jump_counter = 8;
-      motion.walking = false;
-    }
+  if timer.just_finished() && !willy.airborne_status.is_airborne() && !can_stand(position, &cavern_state) {
+    willy.airborne_status = AirborneStatus::FallingSafeToLand;
+    willy.jump_counter = 8;
+    motion.walking = false;
   }
 }
 
 // Check if willy has landed on something. Ideally a floor ;)
 fn check_landing(
   cavern_state: Res<CavernState>,
+  timer: Res<GameTimer>,
   mut query: Query<(&mut Willy, &Position), Has<Willy>>,
 ) {
   let (mut motion, position) = query.get_single_mut().unwrap();
-  if motion.is_changed() && motion.airborne_status.is_falling() {
-    // Willy must be on a precise cell boundary to land.
-    if position.is_vertically_cell_aligned() {
-      let (cx, cy) = position.char_pos();
-      // Is the tile under willy's feet something he can stand on?
-      if cavern_state.get_tile_type((cx, cy + 2)).can_stand() || cavern_state.get_tile_type((cx + 1, cy + 2)).can_stand() {
-//        motion.walking = false;
-        motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
-      }
-    }
+
+  // TODO: there's a bug where we don't get some positions to check for a landing. Debug why?
+  if timer.just_finished() && motion.airborne_status.is_falling() && position.is_vertically_cell_aligned() {
+    println!("Can land at {:?}? {}", position.char_pos(), can_stand(position, &cavern_state));
   }
+
+  if timer.just_finished() &&
+      motion.airborne_status.is_falling() &&
+      position.is_vertically_cell_aligned() &&
+      can_stand(position, &cavern_state) {
+    println!("Landed");
+    motion.airborne_status = AirborneStatus::NotJumpingOrFalling;
+  }
+
+}
+
+fn can_stand(position: &Position, cavern_state: &CavernState) -> bool {
+  position
+    .relative(Relative::Below)
+    .iter()
+    .map(|p| cavern_state.get_tile_type(*p).can_stand())
+    .any(|v| v)
 }
 
 #[derive(Resource)]
 struct DebugState {
-  show_debug_info: bool
+  show_debug_info: bool,
 }
 
-fn listen_for_debug(mut event_reader: EventReader<DebugStateToggled>, mut state: ResMut<DebugState>) {
+fn listen_for_debug(
+  mut event_reader: EventReader<DebugStateToggled>,
+  mut state: ResMut<DebugState>,
+) {
   if !event_reader.is_empty() {
     let event = event_reader.iter().last().unwrap();
     state.show_debug_info = **event;
-
   }
 }
 
 #[allow(clippy::type_complexity)]
 fn update_debug_info(
   mut debug_text: ResMut<DebugText>,
-  query: Query<
-    (&Willy, &Position),
-    (
-      With<Willy>,
-      Or<(Changed<Willy>, Changed<Position>)>,
-    ),
-  >,
+  query: Query<(&Willy, &Position), (With<Willy>, Or<(Changed<Willy>, Changed<Position>)>)>,
 ) {
   if query.get_single().is_ok() {
     let (motion, position) = query.get_single().unwrap();
 
     debug_text.line1 = format!("Pos: {:?} {:?}", position.pixel_pos(), position.char_pos());
     debug_text.line2 = format!("{:?}", motion.airborne_status);
-    debug_text.line3 = format!("can move: L: {:?} R: {:?}", motion.can_move_left, motion.can_move_right);
+    debug_text.line3 = format!(
+      "can move: L: {:?} R: {:?}",
+      motion.can_move_left, motion.can_move_right
+    );
   }
 }
 
@@ -352,19 +347,13 @@ fn update_debug_info(
 fn draw_debug_overlay(
   mut gizmos: Gizmos,
   debug_state: Res<DebugState>,
-  query: Query<
-    &Position,
-    (
-      With<Willy>,
-    ),
-  >,
+  query: Query<&Position, (With<Willy>,)>,
 ) {
   if !debug_state.show_debug_info {
     return;
   }
   // Draw a bounding box around Willy's sprite charbox
   if query.get_single().is_ok() {
-
     let position = query.get_single().unwrap();
 
     let (mut x, mut y) = position.get_cell_box();
@@ -373,7 +362,12 @@ fn draw_debug_overlay(
     y -= 8. * SCALE;
 
     // Draw a box around Willy's 16x16 sprite grid
-    gizmos.rect_2d(vec2((x, y)), 0., vec2((16. * SCALE, 16. * SCALE)), Color::WHITE);
+    gizmos.rect_2d(
+      vec2((x, y)),
+      0.,
+      vec2((16. * SCALE, 16. * SCALE)),
+      Color::WHITE,
+    );
 
     // Draw a box around willy's 8*16 bounding pixel box
 
@@ -382,16 +376,20 @@ fn draw_debug_overlay(
     x += 4. * SCALE;
     y -= 8. * SCALE;
 
-    gizmos.rect_2d(vec2((x, y)), 0., vec2((8. * SCALE, 16. * SCALE)), Color::GOLD);
+    gizmos.rect_2d(
+      vec2((x, y)),
+      0.,
+      vec2((8. * SCALE, 16. * SCALE)),
+      Color::GOLD,
+    );
   }
 }
-
 
 /// Checks for collisions.
 fn check_collisions(
   cavern_state: Res<CavernState>,
   position: Query<&Position, (With<Willy>, Changed<Position>)>,
-  mut item_query: Query<(&mut Item, &Position)>
+  mut item_query: Query<(&mut Item, &Position)>,
 ) {
   if !position.is_empty() {
     let pos = position.get_single().unwrap();
@@ -410,7 +408,6 @@ fn check_collisions(
           println!("Collided with ITEM at {:?}", (x, y))
         }
       }
-
     }
   }
 }
