@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{bitmap::Bitmap, color::Attributes, actors::Direction};
+use crate::{actors::Direction, bitmap::Bitmap, color::Attributes};
 
 // #[derive(Debug)]
 // pub enum SpecialBehavior {
@@ -18,13 +18,14 @@ pub struct Cavern {
   pub name: String,
   pub tile_bitmaps: Vec<Bitmap>,
   pub willy_start: WillyStart,
+  pub conveyor: Conveyor,
   pub border_color: Attributes,
   pub portal: Portal,
   pub guardians: Vec<Guardian>,
   pub guardian_bitmaps: Vec<Bitmap>,
   // pub special_behaviors: HashSet<SpecialBehavior>,
   pub items: Vec<Item>,
-  pub item_bitmap: Bitmap
+  pub item_bitmap: Bitmap,
 }
 
 /// There are eight types of cavern tiles.
@@ -69,18 +70,11 @@ impl CavernTileType {
   }
 
   pub fn is_nasty(&self) -> bool {
-    matches!(
-      *self,
-      CavernTileType::Nasty1 | CavernTileType::Nasty2
-    )
+    matches!(*self, CavernTileType::Nasty1 | CavernTileType::Nasty2)
   }
 }
 
 impl Cavern {
-  // pub fn get_tile_type(&self, pos: (u8, u8)) -> CavernTileType {
-  //   self.get_bg_sprite_index(pos).unwrap_or(0).into()
-  // }
-
   pub fn get_bg_sprite_index(&self, (char_x, char_y): (u8, u8)) -> Option<usize> {
     let color = self.layout.get_cell_color(char_x, char_y);
 
@@ -118,13 +112,11 @@ impl TryFrom<&[u8]> for Cavern {
       pos = end;
     }
 
-    let willy_start = WillyStart::try_from(&bytes[616..622])?;
-
+    let willy_start = WillyStart::try_from(&bytes[616..=622])?;
+    let conveyor = Conveyor::try_from(&bytes[623..=626])?;
     let border_color = Attributes::try_from(bytes[627])?;
-
     let portal: Portal = Portal::try_from(&bytes[655..692])?;
 
-    // Read the guardians, starting at offset 702.
     let mut guardians = Vec::with_capacity(4);
     let mut offset = 702;
 
@@ -150,7 +142,6 @@ impl TryFrom<&[u8]> for Cavern {
       offset += 5;
     }
 
-
     let item_bitmap = Bitmap::create(8, 8, &bytes[692..=699]);
 
     Ok(Cavern {
@@ -158,13 +149,14 @@ impl TryFrom<&[u8]> for Cavern {
       name,
       tile_bitmaps,
       willy_start,
+      conveyor,
       border_color,
       portal,
       guardians,
       guardian_bitmaps,
       // special_behaviors: HashSet::new(),
       items,
-      item_bitmap
+      item_bitmap,
     })
   }
 }
@@ -275,7 +267,7 @@ impl TryFrom<&[u8]> for Portal {
     Ok(Portal {
       attributes,
       bitmap,
-      position
+      position,
     })
   }
 }
@@ -298,7 +290,7 @@ impl From<&[u8]> for Item {
   fn from(data: &[u8]) -> Item {
     Item {
       attributes: data[0].into(),
-      position: decode_packed_position(&data[1..=2])
+      position: decode_packed_position(&data[1..=2]),
     }
   }
 }
@@ -312,12 +304,56 @@ pub struct WillyStart {
 
 impl From<&[u8]> for WillyStart {
   fn from(data: &[u8]) -> WillyStart {
-    let direction = if data[2] == 0u8 { Direction::Right } else { Direction::Left };
+    let direction = if data[2] == 0u8 {
+      Direction::Right
+    } else {
+      Direction::Left
+    };
 
     WillyStart {
       position: decode_packed_position(&data[4..=5]),
       direction,
-      first_animation_frame: if direction == Direction::Right { data[1] } else { 4 + data[1] }
+      first_animation_frame: if direction == Direction::Right {
+        data[1]
+      } else {
+        4 + data[1]
+      },
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct Conveyor {
+  pub direction: ConveyorDirection,
+  pub position: (u8, u8),
+  pub length: u8,
+}
+
+impl From<&[u8]> for Conveyor {
+  fn from(value: &[u8]) -> Self {
+    Conveyor {
+      direction: value[0].into(),
+      position: decode_packed_position(&value[1..=2]),
+      length: value[3]
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum ConveyorDirection {
+  Left = 0,
+  Right = 1,
+  Off = 2,
+  Sticky = 3,
+}
+
+impl From<u8> for ConveyorDirection {
+  fn from(value: u8) -> Self {
+    match value {
+      0 => ConveyorDirection::Left,
+      1 => ConveyorDirection::Right,
+      3 => ConveyorDirection::Sticky,
+      _ => ConveyorDirection::Off,
     }
   }
 }
