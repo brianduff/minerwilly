@@ -149,6 +149,8 @@ fn spawn_cavern(
     let current_cavern = cavern.number;
     let cavern = &game_data.caverns[current_cavern];
 
+    println!("Conveyor: {:?}", cavern.conveyor);
+
     // Create images for the tiles in this cavern so we can spawn sprites for them
     let mut image_handles = Vec::new();
     for tile in cavern.tile_bitmaps.iter() {
