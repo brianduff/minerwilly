@@ -280,6 +280,13 @@ fn decode_packed_position(bytes: &[u8]) -> (u8, u8) {
   (x, y)
 }
 
+fn decode_conveyor_position(bytes: &[u8]) -> (u8, u8) {
+  let x = bytes[0] & 0b11111;
+  let y = (bytes[1] & 0b1000) | ((bytes[0] & 0b1110000) >> 5);
+
+  (x, y)
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Item {
   pub attributes: Attributes,
@@ -333,7 +340,7 @@ impl From<&[u8]> for Conveyor {
   fn from(value: &[u8]) -> Self {
     Conveyor {
       direction: value[0].into(),
-      position: decode_packed_position(&value[1..=2]),
+      position: decode_conveyor_position(&value[1..=2]),
       length: value[3]
     }
   }
