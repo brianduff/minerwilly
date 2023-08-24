@@ -17,8 +17,8 @@ use bevy::{prelude::*, sprite::Anchor};
 pub struct CavernPlugin;
 
 #[derive(Resource, Debug)]
-pub struct Cavern {
-  pub cavern_number: usize,
+pub struct CurrentCavern {
+  pub number: usize,
 }
 
 #[derive(Component, Debug)]
@@ -97,7 +97,7 @@ impl CrumblingTileImages {
 }
 
 fn setup(mut commands: Commands) {
-  commands.insert_resource(Cavern { cavern_number: 0 });
+  commands.insert_resource(CurrentCavern { number: 0 });
   commands.insert_resource(CavernState {
     tile_types: [[CavernTileType::Background; 16]; 32],
     crumble_level: [[7; 16]; 32]
@@ -117,11 +117,11 @@ fn setup(mut commands: Commands) {
 
 fn update_border(
   game_data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern: Res<CurrentCavern>,
   mut clear_color: ResMut<ClearColor>,
 ) {
   if cavern.is_changed() {
-    let cavern = &game_data.caverns[cavern.cavern_number];
+    let cavern = &game_data.caverns[cavern.number];
     let border_color = cavern.border_color.ink_color();
     clear_color.0 = border_color;
   }
@@ -129,24 +129,24 @@ fn update_border(
 
 fn update_cavern_name(
   game_data: Res<GameDataResource>,
-  cavern: Res<Cavern>,
+  cavern: Res<CurrentCavern>,
   mut query: Query<&mut Text, With<CavernName>>,
 ) {
   if cavern.is_changed() {
-    let name = &game_data.caverns[cavern.cavern_number].name;
+    let name = &game_data.caverns[cavern.number].name;
     query.get_single_mut().unwrap().value = name.to_owned();
   }
 }
 
 fn spawn_cavern(
   mut commands: Commands,
-  cavern: Res<Cavern>,
+  cavern: Res<CurrentCavern>,
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
   mut crumbling_tiles: ResMut<CrumblingTileImages>,
 ) -> Result<()> {
   if cavern.is_changed() {
-    let current_cavern = cavern.cavern_number;
+    let current_cavern = cavern.number;
     let cavern = &game_data.caverns[current_cavern];
 
     // Create images for the tiles in this cavern so we can spawn sprites for them
@@ -183,19 +183,19 @@ fn spawn_cavern(
   Ok(())
 }
 
-fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut cavern: ResMut<Cavern>) {
-  if keys.just_released(KeyCode::BracketRight) && cavern.cavern_number < 19 {
-    cavern.cavern_number += 1;
-  } else if keys.just_released(KeyCode::BracketLeft) && cavern.cavern_number > 0 {
-    cavern.cavern_number -= 1;
+fn check_debug_keyboard(keys: Res<Input<KeyCode>>, mut cavern: ResMut<CurrentCavern>) {
+  if keys.just_released(KeyCode::BracketRight) && cavern.number < 19 {
+    cavern.number += 1;
+  } else if keys.just_released(KeyCode::BracketLeft) && cavern.number > 0 {
+    cavern.number -= 1;
   }
 }
 
 fn update_tile_state(mut cavern_state: ResMut<CavernState>,
-  cavern: Res<Cavern>, game_data: Res<GameDataResource>,
+  cavern: Res<CurrentCavern>, game_data: Res<GameDataResource>,
 ) {
   if cavern.is_changed() {
-    let current_cavern = cavern.cavern_number;
+    let current_cavern = cavern.number;
     let cavern = &game_data.caverns[current_cavern];
 
     for y in 0..16 {

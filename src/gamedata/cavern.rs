@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{bitmap::Bitmap, color::Attributes};
+use crate::{bitmap::Bitmap, color::Attributes, actors::Direction};
 
 // #[derive(Debug)]
 // pub enum SpecialBehavior {
@@ -17,6 +17,7 @@ pub struct Cavern {
   pub layout: Layout,
   pub name: String,
   pub tile_bitmaps: Vec<Bitmap>,
+  pub willy_start: WillyStart,
   pub border_color: Attributes,
   pub portal: Portal,
   pub guardians: Vec<Guardian>,
@@ -117,6 +118,8 @@ impl TryFrom<&[u8]> for Cavern {
       pos = end;
     }
 
+    let willy_start = WillyStart::try_from(&bytes[616..622])?;
+
     let border_color = Attributes::try_from(bytes[627])?;
 
     let portal: Portal = Portal::try_from(&bytes[655..692])?;
@@ -154,6 +157,7 @@ impl TryFrom<&[u8]> for Cavern {
       layout,
       name,
       tile_bitmaps,
+      willy_start,
       border_color,
       portal,
       guardians,
@@ -295,6 +299,25 @@ impl From<&[u8]> for Item {
     Item {
       attributes: data[0].into(),
       position: decode_packed_position(&data[1..=2])
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct WillyStart {
+  pub position: (u8, u8),
+  pub direction: Direction,
+  pub first_animation_frame: u8,
+}
+
+impl From<&[u8]> for WillyStart {
+  fn from(data: &[u8]) -> WillyStart {
+    let direction = if data[2] == 0u8 { Direction::Right } else { Direction::Left };
+
+    WillyStart {
+      position: decode_packed_position(&data[4..=5]),
+      direction,
+      first_animation_frame: if direction == Direction::Right { data[1] } else { 4 + data[1] }
     }
   }
 }

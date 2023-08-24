@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{gamedata::GameDataResource, cavern::Cavern, despawn_on_cavern_change, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp};
+use crate::{gamedata::GameDataResource, cavern::CurrentCavern, despawn_on_cavern_change, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp};
 
 pub struct ItemPlugin;
 
@@ -24,11 +24,11 @@ pub struct Item {
 fn spawn_items(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    cavern: ResMut<Cavern>,
+    cavern: ResMut<CurrentCavern>,
     game_data: Res<GameDataResource>
 ) {
   if cavern.is_changed() {
-    let cavern_data = &game_data.caverns[cavern.cavern_number];
+    let cavern_data = &game_data.caverns[cavern.number];
 
     for item in cavern_data.items.iter() {
       let images = create_cycle_images(&cavern_data.item_bitmap, &item.attributes)

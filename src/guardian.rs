@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
   actors::{Actor, Direction, HorizontalMotion, Sprites, update_actor_sprite},
-  cavern::Cavern,
+  cavern::CurrentCavern,
   gamedata::{cavern, GameDataResource},
   position::{Layer, Position}, timer::GameTimer, despawn_on_cavern_change,
 };
@@ -12,12 +12,13 @@ pub struct GuardianPlugin;
 impl Plugin for GuardianPlugin {
   fn build(&self, app: &mut App) {
     // app.add_systems(Startup, init);
+    //app.add_systems(PreUpdate, despawn_on_cavern_change::<Guardian>);
+    app.add_systems(Update, (despawn_on_cavern_change::<Guardian>, spawn_guardians).chain());
     app.add_systems(Update, (
-      (despawn_on_cavern_change::<Guardian>, spawn_guardians).chain(),
       update_actor_sprite::<Guardian>,
       move_guardians,
       change_direction
-    ).chain());
+    ));
   }
 }
 
@@ -29,12 +30,13 @@ pub struct Guardian {
 
 fn spawn_guardians(
   mut commands: Commands,
-  cavern: ResMut<Cavern>,
+  cavern: ResMut<CurrentCavern>,
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
 ) {
   if cavern.is_changed() {
-    let cavern_data = &game_data.caverns[cavern.cavern_number];
+    println!("Spawning guardians for cavern {}", cavern.number);
+    let cavern_data = &game_data.caverns[cavern.number];
 
     // Create images for guardian sprites.
 

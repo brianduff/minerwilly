@@ -2,7 +2,7 @@ use bevy::{ecs::query::Has, prelude::*};
 
 use crate::{
   actors::{update_actor_sprite, Actor, Direction, HorizontalMotion, Sprites},
-  cavern::CavernState,
+  cavern::{CavernState, CurrentCavern},
   color::{Attributes, ColorName},
   debug::{DebugStateToggled, DebugText},
   gamedata::{cavern::CavernTileType, GameDataResource},
@@ -33,6 +33,7 @@ impl Plugin for WillyPlugin {
         check_landing,
         listen_for_debug,
         draw_debug_overlay,
+        move_on_cavern_change
       )
         .chain(),
     );
@@ -404,6 +405,20 @@ fn check_collisions(
           println!("Collided with ITEM at {:?}", (x, y))
         }
       }
+    }
+  }
+}
+
+fn move_on_cavern_change(cavern: Res<CurrentCavern>, game_data: Res<GameDataResource>,
+      mut query: Query<(&mut Position, &mut Willy, &mut HorizontalMotion)>) {
+  if cavern.is_changed() {
+    let start = &game_data.caverns[cavern.number].willy_start;
+    for (mut pos, mut willy, mut motion) in query.iter_mut() {
+      *pos = Position::at_char_pos(Layer::Characters, start.position);
+      willy.airborne_status = AirborneStatus::NotJumpingOrFalling;
+      motion.walking = false;
+      motion.set_direction(start.direction);
+      motion.current_frame = start.first_animation_frame as usize;
     }
   }
 }
