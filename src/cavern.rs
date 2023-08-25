@@ -265,7 +265,6 @@ fn move_conveyor(timer: Res<GameTimer>, mut conveyor_images: ResMut<ConveyorImag
   if timer.just_finished() {
     conveyor_images.conveyor_frame = clamp(conveyor_images.conveyor_frame + 1, 0, 7);
 
-    println!("Conveyor frame {}", conveyor_images.conveyor_frame);
     for (tile, mut image) in query.iter_mut() {
       if tile.tile_type == CavernTileType::Conveyor {
         *image = conveyor_images.images[conveyor_images.conveyor_frame].clone();
