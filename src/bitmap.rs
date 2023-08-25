@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::color::Attributes;
 use bevy::{
   prelude::Image,
@@ -97,6 +99,22 @@ impl Bitmap {
       color: self.color
     }
   }
+
+  //  Rotates one row in this bitmap by `pixels` pixels (this can be negative to rotate left)
+  pub fn rotate_row(&mut self, row: u8, pixels: i8) {
+    // TODO: support images with width > 8.
+    assert!(self.width == 8);
+
+    let byte = self.data[row as usize];
+    let new_byte = match pixels.cmp(&0) {
+      Ordering::Greater => byte.rotate_right(pixels as u32),
+      Ordering::Less => byte.rotate_left(-pixels as u32),
+      Ordering::Equal => byte
+    };
+
+    self.data[row as usize] = new_byte;
+  }
+
 }
 
 /// Given a byte of bitmap information and an ink and paper color in rgba,
@@ -110,5 +128,45 @@ pub fn to_rgba(rgba: &mut Vec<u8>, b: &u8, ink_color: &[u8], paper_color: &[u8])
       paper_color
     });
     mask >>= 1;
+  }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use anyhow::Result;
+
+
+  #[test]
+  fn rotate_8by8() -> Result<()> {
+    let mut bitmap = Bitmap::create(8, 8, &[
+      0b10101010,
+      0b01010101,
+      0b10101010,
+      0b01010101,
+      0b10101010,
+      0b01010101,
+      0b10101010,
+      0b01010101,
+    ]);
+
+    bitmap.rotate_row(0, -1);
+    assert_bits(bitmap.data[0], 0b01010101);
+
+    bitmap.rotate_row(0, -1);
+    assert_bits(bitmap.data[0], 0b10101010);
+
+    bitmap.rotate_row(1, 1);
+    assert_bits(bitmap.data[1], 0b10101010);
+
+
+    Ok(())
+  }
+
+  fn assert_bits(actual: u8, expected: u8) {
+    assert_eq!(actual, expected, "Got `{:#010b}` expected `{:#010b}`", actual, expected);
+
   }
 }

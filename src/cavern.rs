@@ -1,7 +1,7 @@
 use crate::bitmap::Bitmap;
 use crate::color::ColorName;
-use crate::despawn_on_cavern_change;
-use crate::gamedata::cavern::CavernTileType;
+use crate::{despawn_on_cavern_change, clamp};
+use crate::gamedata::cavern::{CavernTileType, Conveyor, ConveyorDirection};
 use crate::position::{Layer, Position, Relative};
 use crate::timer::GameTimer;
 use crate::willy::Willy;
@@ -23,7 +23,8 @@ pub struct CurrentCavern {
 
 #[derive(Component, Debug)]
 struct CavernTile {
-  pos: (u8, u8)
+  pos: (u8, u8),
+  tile_type: CavernTileType
 }
 
 /// The current state of the cavern. This can be used by other plugins to query information
@@ -31,7 +32,7 @@ struct CavernTile {
 #[derive(Resource, Debug)]
 pub struct CavernState {
   tile_types: [[CavernTileType; 16]; 32],
-  crumble_level: [[u8; 16]; 32]
+  crumble_level: [[u8; 16]; 32],
 }
 
 impl CavernState {
@@ -69,6 +70,8 @@ impl Plugin for CavernPlugin {
         update_tile_state,
         update_crumble,
         update_tile_sprites,
+        update_conveyor_images,
+        move_conveyor
       ),
     );
   }
@@ -103,6 +106,7 @@ fn setup(mut commands: Commands) {
     crumble_level: [[7; 16]; 32]
   });
   commands.insert_resource(CrumblingTileImages::new());
+  commands.insert_resource(ConveyorImages::empty());
 
   // Spawn the cavern name
   commands.spawn((
@@ -149,8 +153,6 @@ fn spawn_cavern(
     let current_cavern = cavern.number;
     let cavern = &game_data.caverns[current_cavern];
 
-    println!("Conveyor: {:?}", cavern.conveyor);
-
     // Create images for the tiles in this cavern so we can spawn sprites for them
     let mut image_handles = Vec::new();
     for tile in cavern.tile_bitmaps.iter() {
@@ -167,7 +169,7 @@ fn spawn_cavern(
         if let Some(sprite_index) = sprite_index {
           let texture = &image_handles[sprite_index];
           commands.spawn((
-            CavernTile { pos: (x, y) },
+            CavernTile { pos: (x, y), tile_type: sprite_index.into() },
             SpriteBundle {
               texture: texture.clone(),
               sprite: Sprite {
@@ -246,6 +248,65 @@ fn update_tile_sprites(crumbling_images: Res<CrumblingTileImages>,
           *image = crumbling_images.images[(7 - crumble_level) as usize].clone();
         }
       }
+    }
+  }
+}
+
+fn update_conveyor_images(cavern: Res<CurrentCavern>, images: ResMut<Assets<Image>>, game_data: Res<GameDataResource>,
+    mut conveyor_images: ResMut<ConveyorImages>) {
+  if cavern.is_changed() {
+    let cavern = &game_data.caverns[cavern.number];
+    *conveyor_images = ConveyorImages::new(images, &cavern.tile_bitmaps[4], &cavern.conveyor);
+  }
+}
+
+fn move_conveyor(timer: Res<GameTimer>, mut conveyor_images: ResMut<ConveyorImages>,
+    mut query: Query<(&CavernTile, &mut Handle<Image>)>) {
+  if timer.just_finished() {
+    conveyor_images.conveyor_frame = clamp(conveyor_images.conveyor_frame + 1, 0, 7);
+
+    println!("Conveyor frame {}", conveyor_images.conveyor_frame);
+    for (tile, mut image) in query.iter_mut() {
+      if tile.tile_type == CavernTileType::Conveyor {
+        *image = conveyor_images.images[conveyor_images.conveyor_frame].clone();
+      }
+    }
+
+  }
+}
+
+/// Images for animating conveyors
+#[derive(Resource)]
+struct ConveyorImages {
+  images: Vec<Handle<Image>>,
+  // The current animation frame for conveyors
+  conveyor_frame: usize
+}
+
+impl ConveyorImages {
+  fn empty() -> Self {
+    ConveyorImages { images: vec![], conveyor_frame: 0 }
+  }
+
+  fn new(mut image_assets: ResMut<Assets<Image>>, conveyor_bitmap: &Bitmap, conveyor: &Conveyor) -> Self {
+    let mut images = Vec::new();
+    images.push(image_assets.add(conveyor_bitmap.render()));
+
+    let top_direction = if matches!(conveyor.direction, ConveyorDirection::Left) { -1 } else { 1 };
+
+    let mut new_bitmap = conveyor_bitmap.clone();
+    for _ in 0..7 {
+      new_bitmap.rotate_row(0, top_direction);
+      new_bitmap.rotate_row(2, -top_direction);
+
+      images.push(image_assets.add(new_bitmap.render()));
+      new_bitmap = new_bitmap.clone();
+    }
+
+
+    Self {
+      conveyor_frame: 0,
+      images
     }
   }
 }
