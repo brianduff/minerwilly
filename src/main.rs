@@ -1,8 +1,9 @@
 
+
 use air::AirPlugin;
 use anyhow::Result;
 use bevy::prelude::*;
-use cavern::{CavernPlugin, CurrentCavern};
+use cavern::CavernPlugin;
 use debug::DebugPlugin;
 use gamedata::GameDataPlugin;
 use guardian::GuardianPlugin;
@@ -95,17 +96,15 @@ fn setup(mut commands: Commands) {
 }
 
 
-/// Despawns all entities with a given component type on a cavern change.
-pub fn despawn_on_cavern_change<T: Component>(
-  mut commands: Commands,
+/// Despawns all entities with a given component type. Ideally, this would
+/// be a system, but I can't seem to ever get it to be reliably ordered with other systems
+/// such that it doesn't cause race conditions.
+pub fn despawn_all<T: Component>(
+  commands: &mut Commands,
   query: Query<Entity, With<T>>,
-  cavern: ResMut<CurrentCavern>
 ) {
-  if cavern.is_changed() {
-    println!("Despawning all {:?} for cavern {}", core::any::type_name::<T>(), cavern.number);
-    for entity in query.iter() {
-      commands.entity(entity).despawn();
-    }
+  for entity in query.iter() {
+    commands.entity(entity).despawn();
   }
 }
 

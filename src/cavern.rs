@@ -1,6 +1,6 @@
 use crate::bitmap::Bitmap;
 use crate::color::ColorName;
-use crate::{despawn_on_cavern_change, clamp};
+use crate::{clamp, despawn_all};
 use crate::gamedata::cavern::{CavernTileType, Conveyor, ConveyorDirection};
 use crate::position::{Layer, Position, Relative};
 use crate::timer::GameTimer;
@@ -65,7 +65,7 @@ impl Plugin for CavernPlugin {
       (
         update_border,
         update_cavern_name,
-        (despawn_on_cavern_change::<CavernTile>, spawn_cavern.pipe(handle_errors)).chain(),
+        spawn_cavern.pipe(handle_errors),
         check_debug_keyboard,
         update_tile_state,
         update_crumble,
@@ -148,8 +148,11 @@ fn spawn_cavern(
   game_data: Res<GameDataResource>,
   mut images: ResMut<Assets<Image>>,
   mut crumbling_tiles: ResMut<CrumblingTileImages>,
+  query: Query<Entity, With<CavernTile>>
 ) -> Result<()> {
   if cavern.is_changed() {
+    despawn_all(&mut commands, query);
+
     let current_cavern = cavern.number;
     let cavern = &game_data.caverns[current_cavern];
 

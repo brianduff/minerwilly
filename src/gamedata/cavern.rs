@@ -354,6 +354,12 @@ pub enum ConveyorDirection {
   Sticky = 3,
 }
 
+impl ConveyorDirection {
+  pub fn is_moving(&self) -> bool {
+    matches!(*self, ConveyorDirection::Left | ConveyorDirection::Right | ConveyorDirection::Sticky)
+  }
+}
+
 impl From<u8> for ConveyorDirection {
   fn from(value: u8) -> Self {
     match value {

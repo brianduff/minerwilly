@@ -5,7 +5,7 @@ use crate::{
   cavern::{CavernState, CurrentCavern},
   color::{Attributes, ColorName},
   debug::{DebugStateToggled, DebugText},
-  gamedata::{cavern::CavernTileType, GameDataResource},
+  gamedata::{cavern::{CavernTileType, ConveyorDirection}, GameDataResource},
   item::Item,
   position::{vec2, Layer, Position, Relative},
   timer::GameTimer,
@@ -33,7 +33,8 @@ impl Plugin for WillyPlugin {
         check_landing,
         listen_for_debug,
         draw_debug_overlay,
-        move_on_cavern_change
+        move_on_cavern_change,
+        move_on_conveyor
       )
         .chain(),
     );
@@ -47,6 +48,8 @@ pub struct Willy {
   jump_counter: u8,
   can_move_left: bool,
   can_move_right: bool,
+  on_conveyor: bool,
+  conveyor_direction: Direction
 }
 
 impl Willy {
@@ -114,6 +117,8 @@ fn setup(
       jump_counter: 0,
       can_move_left: true,
       can_move_right: true,
+      on_conveyor: false,
+      conveyor_direction: Direction::Left
     },
     willy_pos,
     Sprites { images },
@@ -177,6 +182,11 @@ fn move_willy(
         motion.walking = true;
         motion.set_direction(Direction::Left);
       }
+    }
+
+    if willy.on_conveyor {
+      motion.walking = true;
+      motion.set_direction(willy.conveyor_direction);
     }
 
     // Stop moving if we've hit a wall.
@@ -421,4 +431,40 @@ fn move_on_cavern_change(cavern: Res<CurrentCavern>, game_data: Res<GameDataReso
       motion.current_frame = start.first_animation_frame as usize;
     }
   }
+}
+
+/// Move willy when he's standing on a conveyor
+fn move_on_conveyor(cavern: Res<CurrentCavern>, game_data: Res<GameDataResource>,
+    mut query: Query<(&Position, &mut Willy)>) {
+
+  let conveyor = &game_data.caverns[cavern.number].conveyor;
+
+  let (conx, cony) = conveyor.position;
+
+  for (pos, mut willy) in query.iter_mut() {
+    willy.on_conveyor = false;
+    if !willy.airborne_status.is_airborne() && conveyor.direction.is_moving() {
+      for (cx, cy) in pos.relative(Relative::Below) {
+        if cy == cony && cx >= conx && cx < conx + conveyor.length {
+          // Willy is standing on a conveyor. Make him move in the relevant direction.
+          match conveyor.direction {
+            ConveyorDirection::Left => {
+              willy.on_conveyor = true;
+              willy.conveyor_direction = Direction::Left;
+            },
+            ConveyorDirection::Right => {
+              willy.on_conveyor = true;
+              willy.conveyor_direction = Direction::Right;
+            },
+            ConveyorDirection::Sticky => {
+              willy.on_conveyor = true;
+              willy.conveyor_direction = Direction::Right;
+            }
+            _ => {}
+          }
+        }
+      }
+    }
+  }
+
 }

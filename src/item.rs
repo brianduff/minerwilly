@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{gamedata::GameDataResource, cavern::CurrentCavern, despawn_on_cavern_change, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp};
+use crate::{gamedata::GameDataResource, cavern::CurrentCavern, actors::{Actor, HorizontalMotion, Sprites, update_actor_sprite}, position::Position, bitmap::Bitmap, color::{Attributes, ColorName}, timer::GameTimer, clamp, despawn_all};
 
 pub struct ItemPlugin;
 
@@ -8,7 +8,7 @@ impl Plugin for ItemPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Update, (
       update_actor_sprite::<Item>,
-      (despawn_on_cavern_change::<Item>, spawn_items).chain(),
+      spawn_items,
       cycle_items,
       despawn_when_collected,
     ).chain());
@@ -25,9 +25,11 @@ fn spawn_items(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     cavern: ResMut<CurrentCavern>,
-    game_data: Res<GameDataResource>
+    game_data: Res<GameDataResource>,
+    query: Query<Entity, With<Item>>
 ) {
   if cavern.is_changed() {
+    despawn_all(&mut commands, query);
     let cavern_data = &game_data.caverns[cavern.number];
 
     for item in cavern_data.items.iter() {
